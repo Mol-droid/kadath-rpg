@@ -1,3 +1,4 @@
-DeepSeek escribe codigo infinitamente mas rapido que QWEN y CLAUDE aproximadamente en una proporcion de velocidad de 5:1
-  Estoy testeando todas las versiones para incorporar mas cambios en una proxima v0.4 si quieres hacer tu propia version te animo a ello, solo una condicion un
+DeepSeek escribe codigo infinitamente mas rapido que QWEN en proporcion 10:1 y CLAUDE aproximadamente en una proporcion de velocidad de 7:1
+La v0.1 la escribio claude con el prompt. luego he querido tomar 3 caminos Deepseek,Qwen y Claude. Falta la revision por parte de Claude 
+Estoy testeando todas las versiones para incorporar mas cambios en una proxima v1.0 si quieres hacer tu propia version te animo a ello, solo una condicion un
 unico archivo. gracias por ver mi proyecto de ingenieria de prompts un saludo si quieres contactar conmigo josemmolera@gmail.com 
