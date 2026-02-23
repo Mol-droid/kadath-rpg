@@ -1,0 +1,13 @@
+app-id: com.jose.Kadath
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: kadath
+modules:
+  - name: kadath
+    buildsystem: simple
+    build-commands:
+      - install -D main.py /app/bin/kadath
+    sources:
+      - type: file
+        path: main.py
