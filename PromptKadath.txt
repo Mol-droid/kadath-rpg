@@ -1,0 +1,1671 @@
+# PROMPT MAESTRO v3.0 — LA BÚSQUEDA ONÍRICA DE KADATH
+### Molvic Studio © 2024 — Versión Definitiva de Producción
+### Correcciones integradas: 10 críticos + 8 graves + 7 mejoras = 25 fixes
+
+---
+
+```
+Eres un ingeniero de software senior con 20 años de experiencia en desarrollo de
+videojuegos retro, experto en Python, sistemas Linux, diseño de mecánicas de juego
+y narrativa Lovecraftiana. Tu misión es crear UN ÚNICO ARCHIVO PYTHON completamente
+autónomo, ejecutable en Linux, que contenga un videojuego de rol y aventura completo,
+profundo y 100% jugable, basado en "La Búsqueda Onírica de la Desconocida Kadath"
+de H.P. Lovecraft.
+
+Este prompt es la especificación técnica COMPLETA Y DEFINITIVA. No debes improvisar
+NINGUNA mecánica. Todo está definido aquí. Donde no haya especificación explícita,
+usa criterio de game designer senior, NO de generador de texto. Ante cualquier
+ambigüedad, elige siempre la interpretación más jugable y coherente con el conjunto.
+
+═══════════════════════════════════════════════════════════════════════
+REGLA ABSOLUTA #1 — ENTREGA
+═══════════════════════════════════════════════════════════════════════
+- UN ÚNICO archivo: kadath.py
+- Ejecutable con: python3 kadath.py
+- CERO dependencias externas. Solo stdlib Python 3.8+:
+  curses, os, sys, json, time, random, math, datetime, pathlib, signal
+  [NOTA: NO importes pickle ni hashlib — no tienen uso en este proyecto]
+- Primera línea obligatoria: #!/usr/bin/env python3
+- Mínimo 2000 líneas de código funcional, ejecutable y sin stubs
+- NUNCA dividas el código. NUNCA uses "# aquí iría..." o funciones con solo pass
+- TODO el código debe poder ejecutarse sin errores desde la primera línea
+- Si un sistema no puede implementarse completamente por extensión del archivo,
+  incluye una versión simplificada FUNCIONAL con el comentario:
+  # TODO_MOLVIC: expandir en v1.1 — [descripción breve]
+  PERO NUNCA dejes el sistema completamente ausente ni roto.
+
+═══════════════════════════════════════════════════════════════════════
+REGLA ABSOLUTA #2 — IDIOMA
+═══════════════════════════════════════════════════════════════════════
+- TODO el juego en español de España: vosotros, ordenador, móvil, tío
+- Narrativa con vocabulario Lovecraftiano castellanizado:
+  "insondable", "abismal", "innombrable", "cósmico terror", "yog-sothiano"
+- Nombres propios del libro respetados exactamente:
+  Randolph Carter, Kadath, Nyarlathotep, Nodens, los Gules, los Zoog,
+  los Gatos de Ulthar, Dylath-Leen, Celephais, Ngranek, Leng, Oriab
+- Créditos visibles en pantalla de título Y pantalla final: Molvic Studio © 2024
+
+═══════════════════════════════════════════════════════════════════════
+ARQUITECTURA TÉCNICA
+═══════════════════════════════════════════════════════════════════════
+Usa curses como motor principal de renderizado.
+Justifica esta elección en un comentario al inicio del archivo.
+
+LAYOUT DE PANTALLA (obligatorio, siempre visible):
+┌─────────────────────────────────┬──────────────────┐
+│                                 │  HUD STATS       │
+│     PANEL PRINCIPAL             │  [10 líneas]     │
+│     ASCII ART + NARRATIVA       │                  │
+│     [18 líneas mínimo]          ├──────────────────┤
+│                                 │  INVENTARIO      │
+│                                 │  [6 líneas]      │
+├─────────────────────────────────┴──────────────────┤
+│   LOG DE ACCIONES — últimas 3 acciones             │
+├────────────────────────────────────────────────────┤
+│   MENÚ DE ACCIONES — opciones numeradas            │
+└────────────────────────────────────────────────────┘
+
+HUD permanente (panel derecho, 10 líneas exactas):
+  Línea 1: VIDA:     [██████████] 100/100
+  Línea 2: CORDURA:  [████████░░]  80/100
+  Línea 3: VOLUNTAD: [███████░░░]  70/100
+  Línea 4: VEL:  15  | REP: NEUTRAL
+  Línea 5: ◈ ORO: 45
+  Línea 6: ✦ NIV: 3  | XP: 120/350
+  Línea 7: ☀ DÍA    | Turno: 47
+  Línea 8: ─────────────────
+  Línea 9: ARMA:    Daga Onírica [8/10]
+  Línea 10:ARMAD:   Capa Niebla  [def:5]
+
+[FIX #4]: el panel HUD tiene 10 líneas para acomodar todos los stats
+incluyendo Velocidad, Reputación y ciclo día/noche.
+
+TERMINAL MÍNIMA: 100 columnas x 30 líneas.
+Al inicio, verificar tamaño del terminal. Si es menor:
+  → mostrar mensaje de advertencia pero continuar igualmente
+  → usar layout compacto alternativo sin panel lateral
+
+El juego NUNCA debe crashear. Toda excepción no capturada →
+pantalla de error elegante con opción de guardar y salir limpiamente.
+Manejar correctamente SIGWINCH (redimensionado de terminal):
+  signal.signal(signal.SIGWINCH, manejador_resize)
+  el manejador debe redibujar la pantalla sin perder el estado del juego.
+
+═══════════════════════════════════════════════════════════════════════
+STATS DEL PERSONAJE — DEFINICIÓN COMPLETA Y UNIFICADA
+═══════════════════════════════════════════════════════════════════════
+[FIX #3 y #6]: todos los stats del jugador definidos con tipo, rango
+y semántica exacta. Sin stats fantasma ni tipos duales.
+
+STATS PRINCIPALES (visibles en HUD):
+  vida:          int  rango [0, vida_max]      base: 100
+  vida_max:      int  rango [100, 200]         (sube con niveles)
+  cordura:       int  rango [0, cordura_max]   base: 100
+  cordura_max:   int  rango [100, 200]         (sube con niveles)
+  voluntad:      int  rango [0, voluntad_max]  base: 100
+  voluntad_max:  int  rango [100, 200]         (sube con niveles)
+  velocidad:     int  rango [1, 30]            base: 10
+                      [FIX #3]: stat real, visible en HUD línea 4
+                      velocidad_base = 10
+                      velocidad_efectiva = velocidad_base
+                                         + (nivel * 1)          ← bonus_nivel_vel
+                                         + bonus_armadura_vel   ← definido en cada armadura
+                                         - penalizacion_peso    ← ver sistema de inventario
+
+STATS SECUNDARIOS (visibles en HUD línea 4 y 5):
+  reputacion:    int  rango [-100, +100]       base: 0
+                      [FIX #6]: SIEMPRE entero. Las categorías son
+                      etiquetas de visualización derivadas del valor:
+                        reputacion > 80:          HEROICA
+                        reputacion en [50, 80]:   POSITIVA
+                        reputacion en [20, 50):   NEUTRAL   ← valor inicial = 0 → NEUTRAL
+                        reputacion en [0, 20):    SOSPECHOSA
+                        reputacion < 0:           TEMIDA
+                      En el código SIEMPRE comparar el int, nunca el string.
+                      Ejemplo correcto:   if jugador.reputacion > 20:
+                      Ejemplo INCORRECTO: if jugador.reputacion == "NEUTRAL":
+
+  oro:           int  rango [0, 9999]          base: 20
+
+STATS DE PROGRESIÓN:
+  nivel:         int  rango [1, 7]             base: 1
+  xp:            int  rango [0, XP_TABLA[nivel+1]]  base: 0
+
+STATS DERIVADOS (calculados, no almacenados):
+  bonus_nivel_daño    = nivel * 2    ← [FIX #2]: fórmula explícita
+  bonus_nivel_vel     = nivel * 1    ← [FIX #2]: fórmula explícita
+  categoria_rep       = función de reputacion (ver arriba)
+
+═══════════════════════════════════════════════════════════════════════
+CLASES OBLIGATORIAS DEL SISTEMA
+═══════════════════════════════════════════════════════════════════════
+Implementa EXACTAMENTE estas clases con sus responsabilidades.
+Cada clase con docstring completo en español.
+
+  class Game           — loop principal, estados, transiciones, SIGWINCH
+  class Player         — stats, niveles, flags de historia, habilidades
+  class Inventory      — slots, tipos, equipamiento, peso, límites
+  class Item           — datos base de cada objeto
+  class Weapon         — hereda Item, añade stats de combate
+  class Armor          — hereda Item, añade stats de defensa
+  class Consumable     — hereda Item, lógica de uso y efecto inmediato
+  class Zone           — localización con estado, NPCs, enemigos, objetos
+  class ZoneGraph      — grafo de conexiones, rutas, bloqueos, zonas seguras
+  class NPC            — árbol de diálogo, quests, memoria de decisiones
+  class Quest          — estructura completa con todos los campos definidos
+  class QuestSystem    — gestión de quests activas, completadas, exclusivas
+  class Enemy          — estadísticas, IA, loot table, efectos de estado
+  class CombatSystem   — turnos, iniciativa, efectos, loot, pantalla muerte
+  class ShopSystem     — catálogos, precios dinámicos, trueque, reparación
+  class PuzzleSystem   — estado de cada puzle, intentos, penalizaciones
+  class SaveSystem     — slots, autoguardado, serialización JSON, exportar
+  class AudioSystem    — beeps, fallback visual, detección de hardware
+  class UIRenderer     — todo el renderizado curses, layouts, colores
+  class EventSystem    — eventos aleatorios con estructura completa
+  class LevelSystem    — XP, tabla niveles, elección mejoras, habilidades
+  class BestiarySystem — entradas, estructura, actualización, logro
+  class MapSystem      — mapa ASCII consultable, leyenda, estado zonas
+
+Constantes en MAYÚSCULAS agrupadas en bloque al inicio del archivo:
+  MAX_INVENTARIO, PESO_MAX, XP_TABLA, PRECIOS_BASE, ZONAS_SEGURAS,
+  STATS_BASE, BONUS_NIVEL_DAÑO_POR_NIVEL, BONUS_NIVEL_VEL_POR_NIVEL,
+  TECHO_PROBABILIDAD_HUIDA, COSTE_RESURRECION_BASE, etc.
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE INVENTARIO — ESPECIFICACIÓN COMPLETA
+═══════════════════════════════════════════════════════════════════════
+Capacidad: 12 slots generales + 2 slots de equipamiento activo
+  (slot_arma_activa + slot_armadura_activa, NO ocupan los 12 generales)
+
+TIPOS DE OBJETO (campo 'tipo' obligatorio, string exacto):
+  "ARMA"       — equipable en slot_arma, modifica daño en combate
+  "ARMADURA"   — equipable en slot_armadura, modifica defensa
+  "CONSUMIBLE" — uso único, desaparece al usarse, efecto inmediato
+  "MISION"     — no puede descartarse ni venderse, marcado con [M] en UI
+  "CLAVE"      — abre zonas o diálogos, no descartable, marcado con [C]
+  "TROFEO"     — prueba de victoria, vendible, marcado con [T]
+
+  [FIX #1]: Un objeto NO puede tener dos tipos. Si un objeto cumple
+  dos roles (ej: arma improvisada que también es misión), se crean
+  DOS objetos distintos con nombres distintos:
+    Fragmento_Ceramica_Roto   → tipo "ARMA"   (arma improvisada débil)
+    Fragmento_Ceramica_Sagrado → tipo "MISION" (coleccionable para Final 5)
+  NUNCA el mismo objeto en ambas tablas.
+
+ATRIBUTOS OBLIGATORIOS de Item (clase base):
+  id:           str  (identificador único snake_case, ej: "daga_onirica")
+  nombre:       str  (nombre visible al jugador)
+  tipo:         str  (uno de los 6 tipos exactos de arriba)
+  descripcion:  str  (texto Lovecraftiano de 1-2 líneas)
+  valor_compra: int  (precio en tienda, 0 = no vendible en tienda)
+  valor_venta:  int  (precio al vender al vendedor, 0 = no vendible)
+  peso:         int  (1, 2 o 3 — afecta límite total peso = 20)
+  usable:       bool (si aparece en menú [U] usar del inventario)
+  apilable:     bool (si múltiples unidades ocupan un slot)
+  cantidad:     int  (si apilable=True, número de unidades en el slot)
+
+ATRIBUTOS ADICIONALES de Weapon (hereda Item):
+  daño_min:     int
+  daño_max:     int
+  tipo_daño:    str  ("FISICO", "MAGICO" u "ONIRICO")
+  durabilidad:  int  (valor actual, rango [0, dur_max])
+  dur_max:      int  (máximo restaurable por reparación)
+  efecto_esp:   str  (descripción del efecto especial, o "ninguno")
+  requisito:    dict (stat mínimo para equipar, {} = sin requisito)
+                     ejemplo: {"voluntad": 60}
+  bonus_vel:    int  (modificador a velocidad del jugador, puede ser 0)
+
+ATRIBUTOS ADICIONALES de Armor (hereda Item):
+  defensa:      int  (resta al daño FISICO recibido)
+  resist_magia: int  (resta al daño MAGICO y ONIRICO recibido)
+  efecto_esp:   str  (efecto pasivo mientras está equipado, o "ninguno")
+  requisito:    dict (stat mínimo para equipar, {} = sin requisito)
+  bonus_vel:    int  (modificador velocidad: positivo=más rápido,
+                      negativo=más lento. La Capa de Niebla = +2)
+
+ATRIBUTOS ADICIONALES de Consumable (hereda Item):
+  efecto:       dict (stats modificados al usarse)
+                     ejemplo: {"cordura": +25} o {"vida": +30, "cordura": +5}
+  cura_estado:  list (estados que elimina: ["veneno", "maldicion"])
+  usos:         int  (cuántas veces puede usarse si apilable, default 1)
+
+TABLA DE OBJETOS — ARMAS (implementa TODAS exactamente):
+[FIX #1]: Fragmento de Cerámica separado en dos objetos distintos.
+
+  id                    | nombre               |dmn|dmx| tipo  |dur|bon_vel| efecto_esp                     |requisito
+  ----------------------|----------------------|---|---|-------|---|-------|--------------------------------|----------
+  puños                 | Puños                | 3 | 8 |FISICO |inf|  0    | ninguno                        | {}
+  daga_onirica          | Daga Onírica         | 8 |15 |ONIRICO| 10|  0    | +10% prob. crítico             | {}
+  espada_sueno          | Espada del Sueño     |15 |25 |FISICO | 10|  0    | ignora 3 puntos de defensa     | {}
+  cetro_ngranek         | Cetro de Ngranek     |20 |35 |MAGICO |  8|  0    | drena -5 Voluntad al enemigo   |{"voluntad":40}
+  zarpa_ghast           | Zarpa de Ghast       |12 |22 |FISICO |  6|  +1   | aplica VENENO 3 turnos (30%)   | {}
+  antorcha_onirica      | Antorcha Onírica     |10 |18 |MAGICO |  5|  0    | aplica ATERRADO no-muertos     | {}
+  fragmento_ceramica_roto| Frag. Cerámica Roto | 5 |10 |ONIRICO|  3|  0    | se rompe al 0 durabilidad      | {}
+  canto_nodens          | Canto de Nodens      |25 |45 |MAGICO |  4|  0    | aturde al enemigo 1 turno      |{"voluntad":60}
+
+  Notas de implementación:
+  - "Puños" siempre disponible, durabilidad infinita (dur_max = -1, nunca se degrada)
+  - "fragmento_ceramica_roto" es un arma improvisada distinta de los objetos de misión
+  - Al llegar a durabilidad 0: el arma solo hace daño mínimo y muestra alerta roja
+
+TABLA DE OBJETOS — ARMADURAS:
+[FIX #22]: Coraza de Gul — comportamiento al equipar definido exactamente.
+
+  id                 | nombre            |def|res|bon_vel| efecto_esp                              |requisito
+  -------------------|-------------------|---|---|-------|-----------------------------------------|----------
+  sin_armadura       | Sin armadura      | 0 | 0 |  0    | ninguno                                 | {}
+  ropas_viajero      | Ropas de Viajero  | 2 | 0 |  +1   | al descansar: +5 Cordura adicional      | {}
+  capa_niebla        | Capa de Niebla    | 5 | 3 |  +2   | 20% de esquivar ataques por completo    | {}
+  armadura_gato      | Armadura de Gato  | 4 | 5 |  0    | inmune a efecto VENENO                  | {}
+  coraza_gul         | Coraza de Gul     | 8 | 2 |  -2   | ver nota abajo                          |{"nivel":3}
+  vestiduras_leng    | Vestiduras de Leng| 6 | 8 |  0    | aplica ATERRADO a humanos al atacar     |{"nivel":5}
+
+  [FIX #22] Coraza de Gul — comportamiento exacto al equipar:
+    voluntad_max se REDUCE en 5 mientras esté equipada.
+    Al equipar: si voluntad_actual > nuevo_voluntad_max,
+                voluntad_actual = nuevo_voluntad_max  (se ajusta hacia abajo)
+                mostrar mensaje: "La coraza oprime tu voluntad. [-5 Voluntad máx.]"
+    Al desequipar: voluntad_max vuelve al valor anterior.
+                   voluntad_actual NO cambia (puede estar por debajo del nuevo máx).
+
+TABLA DE OBJETOS — CONSUMIBLES (apilables, peso 1 cada uno):
+
+  id                  | nombre               | efecto                              |val_c|val_v|cura
+  --------------------|----------------------|-------------------------------------|-----|-----|----
+  pocion_cordura      | Poción de Cordura    | {cordura: +25}                      |  30 |  12 | []
+  balsamo_onirico     | Bálsamo Onírico      | {vida: +30}                         |  25 |  10 | []
+  elixir_voluntad     | Elixir de Voluntad   | {voluntad: +20}                     |  35 |  14 | []
+  polvo_irem          | Polvo de Irem        | {vida:+15, cordura:+15, voluntad:+15}|  80 |  32 | []
+  antidoto_sueno      | Antídoto de Sueño    | {}                                  |  40 |  16 | ["veneno","maldicion"]
+  pan_gatos           | Pan de los Gatos     | {vida: +10, cordura: +5}            |  15 |   6 | []
+  vino_dylath         | Vino de Dylath-Leen  | {voluntad: +15, cordura: -10}       |  20 |   8 | []
+  amuleto_nodens      | Amuleto de Nodens    | huida_garantizada_una_vez           | 100 |  40 | []
+
+  Nota amuleto_nodens: al usarse en combate garantiza huida exitosa al 100%.
+  Se consume. usable=True solo durante combate.
+
+TABLA DE OBJETOS — MISIÓN (no vendibles, no descartables, peso 1):
+[FIX #5]: Gatito_Onírico añadido con todos sus campos.
+
+  id                      | nombre                    | descripcion breve
+  ------------------------|---------------------------|------------------------------------------
+  pergamino_antiguos      | Pergamino de los Antiguos | Texto pre-humano. Desbloquea diálogo Nodens
+  mapa_kadath_frag        | Mapa Fragmentado de Kadath| Fragmento del mapa hacia Kadath
+  escama_shantak          | Escama de Shantak         | Prueba ante los Gatos de Ulthar
+  trofeo_ghast            | Trofeo de Ghast           | Acredita ante los Gules (tipo TROFEO también)
+  llave_catacumbas        | Llave de las Catacumbas   | Abre paso de Zona 5 a Zona 6
+  gatito_onirico          | Gatito Onírico            | Felino perdido. Llora suavemente. [FIX #5]
+  reliquia_leng           | Reliquia de Leng          | Objeto de poder enterrado bajo la Meseta
+  piedra_comun            | Piedra Común              | Una piedra. Útil para trueques con los Zoog.
+
+  [FIX #5] Gatito_Onírico — atributos completos:
+    tipo: "MISION" (no descartable)
+    peso: 1
+    descripcion: "Un felino soñador, pequeño y asustado. Sus ojos reflejan
+                  estrellas que no existen en el cielo onírico."
+    efecto_al_tener: mientras esté en inventario, los Gatos de Ulthar
+                     en zona actual son neutrales (no atacan al jugador)
+    valor_compra: 0  valor_venta: 0
+
+TABLA DE OBJETOS — COLECCIONABLES (para Final 5):
+  7 Fragmentos de Cerámica Sagrada — ids: frag_ceramica_1 ... frag_ceramica_7
+  Cada uno: tipo "MISION", peso 1, descripcion única, ubicación fija en el juego.
+  [FIX #1]: Son DISTINTOS del "Fragmento de Cerámica Roto" (arma).
+  Ubicaciones fijas (no aleatorias):
+    frag_ceramica_1: Zona 1, cofre oculto detrás del templo de los gatos
+    frag_ceramica_2: Zona 2, recompensa oculta del Puzle 2
+    frag_ceramica_3: Zona 3, en poder del mercader de luna negra (comprar 150 oro)
+    frag_ceramica_4: Zona 5, en el altar del Puzle 1 (tras resolverlo)
+    frag_ceramica_5: Zona 6, regalo de Kuranes si QUEST-05 completada
+    frag_ceramica_6: Zona especial Ngranek
+    frag_ceramica_7: Menes el Felino lo revela si Nivel>=5 y GATOS_ALIADOS
+
+REGLAS DE INVENTARIO:
+  - Al intentar añadir objeto con inventario lleno (12/12):
+    mostrar menú de descarte con lista de objetos descartables
+    objetos tipo MISION y CLAVE NO aparecen en menú de descarte
+  - Peso total actual = suma de pesos de todos los objetos (general + equipados)
+  - Si peso_total > PESO_MAX (20):
+    velocidad efectiva -= 10  (penalizacion_peso = -10 a velocidad)
+    mensaje de advertencia en HUD: "⚠ SOBRECARGADO"
+  - Al equipar arma/armadura: la anterior vuelve al inventario general
+    si inventario lleno al desequipar: la anterior se descarta con aviso
+  - Tecla [I]: pantalla completa de inventario en cualquier momento excepto combate
+    En pantalla inventario: [E] equipar, [U] usar, [D] descartar, [X] cerrar
+    Mostrar peso actual / peso máximo en la pantalla de inventario
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE ECONOMÍA — ESPECIFICACIÓN COMPLETA
+═══════════════════════════════════════════════════════════════════════
+Moneda: Oro de Sueño (◈)
+
+FUENTES DE INGRESOS:
+  Matar enemigo               | oro según tabla de enemigos
+  Vender objetos              | valor_venta del Item
+  Resolver puzle              | oro según tabla de puzles
+  Completar quest             | oro según tabla de quests
+  Robar (req: voluntad>=40)   | 15-30 oro; si falla: reputacion -= 10
+  Recompensas NPC             | según árbol de diálogo
+  Vender trofeos              | coleccionista en Ulthar: 25 oro/trofeo
+                              | coleccionista en Celephais: 35 oro/trofeo
+
+COSTE DE RESURRECCIÓN ESCALADO:
+  [FIX #11]: coste plano sustituido por fórmula escalada con la zona:
+  coste_resurrecion = 20 + (numero_zona_actual * 5)
+  Zona 1: 25 oro | Zona 6: 50 oro | Zona 12: 80 oro
+  Esto mantiene la dificultad y el riesgo económico constante a lo largo del juego.
+
+SISTEMA DE DESCANSO CON LÍMITE:
+  [FIX #12]: descanso grindeable eliminado con estas reglas:
+  - Máximo 2 descansos por visita a una zona (contador reset al cambiar de zona)
+  - Al intentar el 3er descanso: mensaje "Ya has descansado suficiente aquí."
+  - Descanso en Posada (disponible en Ulthar y Celephais): sin límite,
+    cuesta 10 oro por descanso, recupera stats completos de la acción descanso
+  - Descanso libre: recupera Cordura +15, Voluntad +10, Vida +5
+  - Efecto de Ropas de Viajero: los +5 Cordura adicionales aplican siempre
+  - Riesgo: cada descanso libre tiene 20% de disparar EVT-04 "Sueño dentro del sueño"
+
+FÓRMULA DE PRECIO DINÁMICO POR REPUTACIÓN:
+  precio_compra = int(precio_base * modificador_compra)
+  precio_venta  = int(valor_venta_base * modificador_venta)
+
+  [FIX #6]: las comparaciones usan el int de reputacion directamente:
+  if jugador.reputacion > 80:    mod_c=0.80, mod_v=1.20   # HEROICA
+  elif jugador.reputacion >= 50: mod_c=0.90, mod_v=1.10   # POSITIVA
+  elif jugador.reputacion >= 20: mod_c=1.00, mod_v=1.00   # NEUTRAL
+  elif jugador.reputacion >= 0:  mod_c=1.20, mod_v=0.80   # SOSPECHOSA
+  else:                          mod_c=1.50, mod_v=0.60   # TEMIDA
+    con reputacion < 0: algunos vendedores se niegan a vender
+    (flag por vendedor: "vende_a_temidos": True/False)
+
+TIENDAS DEL JUEGO:
+
+  TIENDA 1 — Mercado de Ulthar (Zona 1):
+    id: tienda_ulthar
+    vendedor: Menes el Felino
+    vende_a_temidos: False
+    catalogo: [pocion_cordura(30), balsamo_onirico(25), pan_gatos(15),
+               ropas_viajero(40), daga_onirica(80), antidoto_sueno(40)]
+    especial: si jugador tiene escama_shantak → precio_base * 0.85 adicional
+    reparacion: No
+
+  TIENDA 2 — Bazar de los Zoog (Zona 2):
+    id: tienda_zoog
+    vendedor: Zoog Gris
+    vende_a_temidos: False  (si reputacion < 0 → "Los Zoog no tratan con extraños indeseables")
+    catalogo: [vino_dylath(20), fragmento_ceramica_roto(35), informacion(15-50)]
+    trueque: Sí — ver tabla de trueques abajo
+    reparacion: No
+
+  TIENDA 3 — Puerto de Dylath-Leen (Zona 3):
+    id: tienda_dylath
+    vendedor: Mercader de Luna Negra
+    vende_a_temidos: True
+    precio_base_multiplicador: 1.20 (siempre, antes de reputación)
+    catalogo: [elixir_voluntad(35), capa_niebla(120), amuleto_nodens(100),
+               espada_sueno(200)]
+    articulos_ilegales (req: voluntad>=50):
+      [FIX #15]: definidos exactamente:
+      veneno_onirico(60):  consumible, aplica VENENO al siguiente ataque
+      mapa_robado(80):     revela ubicación de un objeto oculto en zona actual
+      fragmento_mapa(120): añade un fragmento al Mapa de Kadath
+    reparacion: No
+
+  TIENDA 4 — Forja de Celephais (Zona 6):
+    id: tienda_celephais
+    vendedor: Herrero de Kuranes
+    vende_a_temidos: True
+    catalogo: [cetro_ngranek(300), armadura_gato(150), antorcha_onirica(90)]
+    reparacion: Sí — 10 oro por punto de durabilidad restaurado
+                     solo armas y armaduras del inventario del jugador
+    especial: si QUEST-05 completada → 15% descuento adicional
+
+  TABLA DE TRUEQUES (Bazar Zoog):
+    [FIX #20]: reglas de trueque definidas con tabla de equivalencias:
+    El jugador propone un objeto. El Zoog acepta o rechaza según esta tabla:
+    piedra_comun      → Zoog da: vino_dylath (1 unidad)
+    trofeo_ghast      → Zoog da: fragmento_mapa O elixir_voluntad (el jugador elige)
+    fragmento_ceramica_roto → Zoog da: informacion sobre zona actual
+    balsamo_onirico   → Zoog da: pan_gatos (2 unidades)
+    cualquier TROFEO  → Zoog da: vino_dylath + 10 oro
+    Si el jugador ofrece un objeto no en la lista: "Eso no me interesa, soñador."
+
+INTERFAZ DE TIENDA (estado SHOP, pantalla separada del juego):
+  Layout: [izquierda 50%] catálogo tienda numerado con precio final
+          [derecha 50%]   inventario jugador con valor_venta de cada objeto
+  Línea inferior: ORO actual | PESO actual/máximo
+  Acciones: [C] Comprar (elige número) | [V] Vender (elige objeto inventario)
+             [R] Reparar (si aplica)   | [T] Trueque (si aplica) | [X] Salir
+  Al comprar: mostrar precio final con modificador reputación → pedir [S/N] confirmar
+  Al vender: mostrar precio ofertado → pedir [S/N] confirmar
+  Al reparar: listar objetos con durabilidad < dur_max, mostrar coste total
+```
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE PROGRESIÓN — XP, NIVELES, MEJORAS Y HABILIDADES
+═══════════════════════════════════════════════════════════════════════
+TABLA XP_TABLA (constante al inicio del archivo):
+  XP_TABLA = {1: 0, 2: 100, 3: 200, 4: 350, 5: 500, 6: 800, 7: 1200}
+  Nivel máximo: 7. Al nivel 7 el XP sigue acumulándose pero sin efecto.
+
+FUENTES DE XP:
+  Matar enemigo:          ver campo xp_reward en tabla de enemigos
+  Resolver puzle:         ver campo xp en tabla de puzles
+  Completar quest:        ver campo xp en tabla de quests
+  Descubrir zona nueva:   25 XP fijo
+  Decisión narrativa:     15-30 XP según impacto (definido por evento/diálogo)
+
+AL SUBIR DE NIVEL — SISTEMA DE ELECCIÓN:
+  [FIX #14]: las habilidades especiales se desbloquean AUTOMÁTICAMENTE
+  al alcanzar el nivel correspondiente. NO forman parte del pool aleatorio.
+  El pool aleatorio solo contiene mejoras de stats.
+
+  HABILIDADES AUTOMÁTICAS POR NIVEL (se desbloquean sin elección):
+    Nivel 2: Paso Silencioso  — 30% de evitar encuentros aleatorios
+    Nivel 3: Visión Onírica   — acción en zona: revela objetos ocultos
+    Nivel 4: Conjuro Menor    — acción en combate [7]: daño 30-50 MAGICO
+    Nivel 5: Pacto Onírico    — acción en combate [6] disponible vs todos
+    Nivel 6: Forma de Niebla  — en combate: inmunidad daño FISICO 2 turnos, 1/combate
+    Nivel 7: Voluntad Cósmica — Voluntad actúa como segunda barra de Vida en combate
+
+  POOL DE MEJORAS ALEATORIAS (el jugador elige 1 de 3 al subir nivel):
+    Las 3 opciones se eligen aleatoriamente SIN repetir de esta lista:
+    A) +15 Vida máxima
+    B) +15 Cordura máxima
+    C) +15 Voluntad máxima
+    D) +10% daño permanente (se aplica al bonus_nivel_daño: sube a nivel*2.2)
+    E) +10% resistencia permanente (10% reducción adicional de daño recibido)
+    F) +1 slot de inventario (+1, hasta máximo 16 slots generales)
+    G) Velocidad base +2 permanente
+
+  Pantalla de subida de nivel: animación ASCII, nombre de habilidad desbloqueada,
+  luego mostrar las 3 opciones del pool para que el jugador elija.
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE MAPA Y ZONAS — GRAFO DE CONEXIONES
+═══════════════════════════════════════════════════════════════════════
+ZONAS SEGURAS (flag is_safe_zone = True):
+  [FIX #23]: zonas donde el jugador puede resucitar sin coste de zona:
+  Zona 1 (Ulthar), Zona 6 (Celephais), Zona 3 (Dylath-Leen, solo en posada)
+  Al morir: se resucita en la zona segura más cercana en el grafo.
+  "Más cercana" = menor número de aristas desde zona_actual a zona_segura.
+
+GRAFO DE CONEXIONES:
+  [FIX #7]: Mapa_Completo definido. El flag se activa cuando:
+  mapa_fragmentos_obtenidos >= 3
+  (combinando: QUEST-02 da 1, QUEST-04 da 1, EVT-07 da 1, tienda ilegal da 1)
+  Con mapa_fragmentos_obtenidos < 3 → Zona 10 bloqueada
+
+  Zona 1  (Ulthar, SEGURA)   → Zona 2 (libre), Zona 6 (req: nivel>=4)
+  Zona 2  (Bosque Zoog)      → Zona 1 (libre), Zona 3 (libre), Zona 4 (libre)
+  Zona 3  (Dylath-Leen, SEGURA en posada)
+                             → Zona 2 (libre), Zona 4 (libre),
+                               Zona 7 (req: flag RUTA_SEGURA OR tener barco*)
+  Zona 4  (Mont. Humo)       → Zona 2 (libre), Zona 3 (libre),
+                               Zona 5 (req: tener trofeo_ghast en inventario)
+  Zona 5  (Catac. Zak)       → Zona 4 (libre),
+                               Zona 6 (req: tener llave_catacumbas)
+  Zona 6  (Celephais, SEGURA)→ Zona 1 (libre), Zona 5 (libre), Zona 7 (libre)
+  Zona 7  (Mar de Oriab)     → Zona 3 (libre), Zona 6 (libre),
+                               Zona 8 (req: nivel>=5)
+  Zona 8  (Inquanok)         → Zona 7 (libre),
+                               Zona 9 (req: reputacion>=20 OR voluntad>=60)
+  Zona 9  (Meseta Leng)      → Zona 8 (libre),
+                               Zona 10 (req: tener reliquia_leng)
+  Zona 10 (Escaleras)        → Zona 9 (libre),
+                               Zona 11 (req: mapa_fragmentos_obtenidos>=3)
+  Zona 11 (Fortaleza)        → Zona 10 (libre),
+                               Zona 12 (req: flag guardian_derrotado)
+  Zona 12 (Kadath)           → solo accesible desde Zona 11
+
+  Zona_A  (Ngranek, especial)→ accesible desde Zona 4 (req: nivel>=3)
+  Zona_B  (Ulthar_Secreto)   → accesible desde Zona 1 (req: fragmentos_ceramica=7)
+
+  *barco: objeto CLAVE obtenible en Zona 3 comprando pasaje (50 oro)
+
+ESPECIFICACIÓN DE CADA ZONA (implementa las 12 + 2 especiales):
+  a) ASCII art representativo mínimo 10 líneas, atmósfera Lovecraftiana
+  b) Descripción narrativa 4-6 líneas en primera persona de Carter
+  c) Lista de acciones numeradas, mínimo 5 por zona
+  d) NPCs presentes: nombre + indicador [!] quest activa, [?] info, [T] tienda
+  e) Tabla de encuentros: enemigo + probabilidad_dia + probabilidad_noche
+  f) Objetos coleccionables con ubicación exacta (ej: "en el cofre norte")
+  g) Evento especial único de primera visita (flag primera_visita)
+  h) Lista de conexiones con estado (libre/bloqueada + requisito si bloqueada)
+  i) Flag is_safe_zone
+  j) Límite de descansos (2 por defecto, 0 en zonas peligrosas sin posada)
+
+MAPA ASCII CONSULTABLE (tecla [M], fuera de combate):
+  [1:ULTHAR★]━━━[2:ZOOG]━━━[3:DYLATH]
+      |               |          |
+   [6:CEL]        [4:HUMO]   [7:ORIAB]
+      |               |          |
+   (ruta)         [5:ZAK]  [8:INQUANOK]
+                                 |
+                            [9:LENG]
+                                 |
+                           [10:ESCAL.]
+                                 |
+                           [11:FORTAL.]
+                                 |
+                           [12:KADATH]
+
+  Leyenda en pantalla:
+  [zona]  — visitada y libre      {zona} — bloqueada (muestra requisito)
+  (zona)  — disponible no visita  *zona* — ubicación actual del jugador
+  ★       — zona segura
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE QUESTS Y PROPUESTAS
+═══════════════════════════════════════════════════════════════════════
+ESTRUCTURA OBLIGATORIA clase Quest (todos los campos):
+  id:             str
+  titulo:         str
+  giver_id:       str   (id del NPC que la ofrece)
+  zona_inicio:    str   (zona donde se activa)
+  descripcion:    str
+  objetivo:       dict  {"tipo": "tener"/"matar"/"hablar"/"llegar",
+                          "target": id_objeto o id_enemigo o id_npc o id_zona,
+                          "cantidad": int}
+  recompensa:     dict  {"oro": int, "xp": int, "objeto": id o None,
+                          "stat_bonus": {stat: valor} o {},
+                          "flag": nombre_flag o None}
+  consecuencia:   dict  {"flags_set": [lista de flags a activar],
+                          "flags_clear": [lista de flags a desactivar],
+                          "npc_actitud": {id_npc: "aliado"/"hostil"/"neutral"}}
+  exclusiva_con:  list  (ids de quests incompatibles)
+  completada:     bool
+  activa:         bool
+  fallable:       bool  (si puede fallarse permanentemente)
+  condicion_fallo: dict o None
+
+QUESTS PRINCIPALES (implementa todas con estructura completa):
+
+QUEST-01: "El Favor de los Gatos"
+  giver: menes_felino | zona: zona_1
+  objetivo: {tipo:"tener", target:"gatito_onirico", cantidad:1}
+  recompensa: {oro:50, xp:80, objeto:"pan_gatos"(x3),
+               stat_bonus:{}, flag:"GATOS_ALIADOS"}
+  consecuencia: {flags_set:["GATOS_ALIADOS"], flags_clear:["GATOS_HOSTILES"],
+                 npc_actitud:{"menes_felino":"aliado"}}
+  exclusiva_con: ["quest_02"]
+
+QUEST-02: "El Trato de los Zoog"
+  giver: zoog_gris | zona: zona_2
+  objetivo: {tipo:"hablar", target:"zoog_gris", cantidad:1}
+             (se activa al entregar el gatito al Zoog Gris)
+  recompensa: {oro:30, xp:60, objeto:"mapa_kadath_frag",
+               stat_bonus:{}, flag:"GATOS_HOSTILES"}
+  consecuencia: {flags_set:["GATOS_HOSTILES","MAPA_FRAG_1"],
+                 flags_clear:["GATOS_ALIADOS"],
+                 npc_actitud:{"menes_felino":"frio"}}
+  exclusiva_con: ["quest_01"]
+  NOTA: al completar QUEST-02, mapa_fragmentos_obtenidos += 1
+
+  *** PANTALLA DE DECISIÓN CLAVE (cuando jugador tiene gatito_onirico en Zona 2):
+  ┌─────────────────────────────────────────────────────┐
+  │  DECISIÓN: ¿A quién entregas el Gatito Onírico?    │
+  │                                                     │
+  │  Menes el Felino aguarda en Ulthar, esperanzado.   │
+  │  El Zoog Gris te observa desde las sombras.        │
+  │                                                     │
+  │  [1] Devolver a Menes → Gatos aliados, Rep +15     │
+  │  [2] Dar a los Zoog   → Mapa garantizado, Gatos ☠  │
+  │                                                     │
+  │  Esta decisión es permanente.                       │
+  └─────────────────────────────────────────────────────┘
+  ***
+
+QUEST-03: "La Deuda de Dylath-Leen"
+  giver: capitan_arash | zona: zona_3
+  objetivo: {tipo:"tener", target:"fragmento_ceramica_roto", cantidad:1}
+  recompensa: {oro:100, xp:100, objeto:None,
+               stat_bonus:{}, flag:"RUTA_SEGURA"}
+  consecuencia: {flags_set:["RUTA_SEGURA"],
+                 npc_actitud:{"capitan_arash":"aliado"}}
+  exclusiva_con: []
+
+QUEST-04: "El Tributo de Ngranek"
+  giver: anciano_ngranek | zona: zona_a
+  objetivo: {tipo:"tener", target:"trofeo_ghast", cantidad:1}
+  recompensa: {oro:0, xp:150, objeto:"cetro_ngranek",
+               stat_bonus:{"voluntad_max":+20}, flag:"MAPA_NGRANEK"}
+  consecuencia: {flags_set:["MAPA_NGRANEK"], flags_clear:[],
+                 npc_actitud:{}}
+  NOTA: al completar, mapa_fragmentos_obtenidos += 1
+  [FIX #16]: Quest-04 está en Zona_A (Acto I extendido).
+  El Logro-06 "Pacifista Onírico" requiere no matar en Acto I (zonas 1-5).
+  Zona_A es accesible desde Zona 4 (también Acto I).
+  Son mutuamente excluyentes por diseño deliberado. El juego lo indica:
+  Si Logro-06 activo y se activa Quest-04: mensaje de aviso:
+  "Aceptar esta misión requiere combate. El logro 'Pacifista Onírico'
+   se perderá si matas a un enemigo. ¿Continuar? [S/N]"
+
+QUEST-05: "La Súplica de Kuranes"
+  giver: kuranes | zona: zona_6
+  objetivo: {tipo:"tener", target:"pergamino_antiguos", cantidad:1}
+  recompensa: {oro:0, xp:200, objeto:"vestiduras_leng",
+               stat_bonus:{"reputacion":+25}, flag:"CELEPHAIS_ESTABLE"}
+  consecuencia: {flags_set:["CELEPHAIS_ESTABLE"],
+                 npc_actitud:{"kuranes":"aliado_final"}}
+  exclusiva_con: []
+
+QUEST-06: "Los Secretos de Leng"
+  giver: prisionero_inquanok | zona: zona_8
+  objetivo: {tipo:"tener", target:"reliquia_leng", cantidad:1}
+  recompensa: {oro:0, xp:300, objeto:None,
+               stat_bonus:{}, flag:"RUTA_KADATH"}
+  consecuencia: {flags_set:["RUTA_KADATH"],
+                 npc_actitud:{"prisionero_inquanok":"revelado"}}
+  [FIX #10]: relación con Puzle 4 definida exactamente:
+  - Si el jugador llega a Zona 9 SIN tener Quest-06 activa:
+    puede resolver el Puzle 4 igualmente y obtener reliquia_leng.
+    Al volver a Zona 8 con la reliquia, el Prisionero dice:
+    "¡Ya la tienes! Aunque no te pedí que lo hicieras... la misión
+     se considera completada." → Quest-06 se completa retroactivamente.
+  - Si Quest-06 está activa al resolver Puzle 4:
+    Quest-06 se completa automáticamente al obtener reliquia_leng.
+  - En ambos casos: mismo xp, misma recompensa, misma consecuencia.
+
+QUESTS SECUNDARIAS (implementa con estructura Quest completa):
+  [FIX #18]: las 4 quests secundarias tienen estructura completa.
+
+QUEST-S01: "El Bestiario del Soñador"
+  giver: investigador_ulthar (NPC menor en Zona 1)
+  objetivo: {tipo:"registro", target:"bestiario", cantidad:5}
+             (tener 5 entradas en el bestiario)
+  recompensa: {oro:60, xp:50, objeto:"elixir_voluntad", stat_bonus:{}, flag:None}
+  consecuencia: {} exclusiva_con: []
+
+QUEST-S02: "El Coleccionista de Sueños"
+  giver: coleccionista_ulthar (NPC en Zona 1)
+  objetivo: {tipo:"vender_trofeos", target:"coleccionista_ulthar", cantidad:3}
+  recompensa: {oro:90, xp:40, objeto:None, stat_bonus:{"reputacion":+10}, flag:None}
+  consecuencia: {} exclusiva_con: []
+
+QUEST-S03: "La Promesa de Ulthar"
+  giver: se activa automáticamente al completar QUEST-01
+  objetivo: {tipo:"completar_quests", target:["quest_01","quest_05"], cantidad:2}
+  recompensa: {oro:100, xp:75, objeto:"polvo_irem", stat_bonus:{}, flag:"PROMESA_ULTHAR"}
+  consecuencia: {flags_set:["PROMESA_ULTHAR"]} exclusiva_con: []
+
+QUEST-S04: "El Camino del Pacifista"
+  giver: se activa automáticamente al iniciar nueva partida
+  objetivo: {tipo:"completar_acto", target:"acto_1", cantidad:1,
+             condicion:"enemigos_muertos_acto1 == 0"}
+  recompensa: {oro:0, xp:120, objeto:None,
+               stat_bonus:{"cordura_max":+10}, flag:"PACIFISTA"}
+  consecuencia: {flags_set:["PACIFISTA"]}
+  exclusiva_con: [] (no exclusiva con QUEST-04, se avisa antes de perderla)
+  fallable: True
+  condicion_fallo: {tipo:"matar_enemigo", zona:"acto_1"}
+  Al fallar: mensaje "El pacto con la no-violencia se ha roto."
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE COMBATE — ESPECIFICACIÓN COMPLETA
+═══════════════════════════════════════════════════════════════════════
+FLUJO DE COMBATE por turno:
+
+FASE 1 — INICIATIVA:
+  velocidad_jugador = velocidad_base
+                    + bonus_nivel_vel      (nivel * 1)      [FIX #2]
+                    + armadura_equipada.bonus_vel
+                    - penalizacion_peso    (0 o -10 si sobrecargado)
+  velocidad_enemigo = enemigo.velocidad
+  Si velocidad_jugador > velocidad_enemigo: jugador ataca primero
+  Si velocidad_jugador <= velocidad_enemigo: enemigo ataca primero
+  Empate exacto: jugador tiene ventaja (ataca primero)
+
+FASE 2 — TURNO DEL JUGADOR:
+  [1] Atacar físicamente
+      daño_base  = random(arma_equipada.daño_min, arma_equipada.daño_max)
+      bonus_daño = nivel * 2                                 [FIX #2]
+      daño_total = daño_base + bonus_daño
+      daño_final = max(1, daño_total - enemigo.defensa)
+      crítico (prob = 15% + bonus_critico_arma):
+        daño_final *= 2 | audio: CRITICO | mensaje rojo
+      Si arma no es "puños": durabilidad -= 1
+      Si durabilidad <= 0: daño_base = arma.daño_min (solo mínimo)
+                           alerta: "⚠ [nombre arma] está muy deteriorada"
+
+  [2] Conjuro de Sueño (cuesta 15 Voluntad, req: voluntad>=15)
+      daño_conjuro = random(25, 40) + (voluntad // 10)
+      tipo_daño: MAGICO — ignora defensa física (enemigo.defensa no aplica)
+                         aplica solo resist_magia si el jugador la tiene
+      [FIX #9] EFECTOS DEL CONJURO POR NIVEL DEL JUGADOR:
+        Nivel 1-2: solo daño, sin efecto adicional
+        Nivel 3-4: aplica ATURDIDO al enemigo (1 turno, 40% probabilidad)
+        Nivel 5-6: aplica ATURDIDO (1 turno, 60%) + reduce defensa enemigo -2
+        Nivel 7:   aplica ATURDIDO (1 turno, 80%) + reduce defensa -4 + daño +10
+
+  [3] Usar objeto — abre submenú solo con CONSUMIBLES del inventario
+      cada consumible muestra su efecto antes de confirmar uso
+
+  [4] Esquivar — no hace daño
+      activa estado ESQUIVANDO en jugador
+      próximo ataque del enemigo: 60% de fallar completamente
+      si la armadura es capa_niebla: probabilidad total sube a 75%
+      el turno termina
+
+  [5] Huir — probabilidad escalada y con techo:
+      [FIX #17]: prob_huida = min(90, 40 + max(0, cordura - 50))
+      Ejemplos: cordura=100 → 90% | cordura=50 → 40% | cordura=20 → 40%
+      Si amuleto_nodens fue usado este combate: 100% garantizado
+      Éxito: combate termina, jugador pierde turno en zona
+      Fallo: turno termina sin efecto, enemigo ataca normalmente
+
+  [6] Intimidar/Negociar (req: reputacion > 20)
+      prob_éxito = (reputacion / 200) + (voluntad / 400)
+      Éxito: combate termina sin consecuencias
+      Fallo: reputacion -= 5
+             enemigo gana estado FORTALECIDO (daño +20% próximo turno)
+
+  [7] Habilidad especial (si desbloqueada, solo aparece si nivel >= 4):
+      Conjuro Menor (nivel>=4): daño 30-50 MAGICO, gasta 20 Voluntad
+      Forma de Niebla (nivel>=6): inmunidad FISICO 2 turnos, 1 uso/combate
+      Voluntad Cósmica (nivel>=7): gasta 30 Voluntad para +50 daño este turno
+
+FASE 3 — EFECTOS DE ESTADO (al final de cada turno, afectan al portador):
+  VENENO:      -8 Vida por turno | duración: 3 turnos | curable con antidoto_sueno
+  MALDICION:   -5 a todos los stats por turno | duración: 4 turnos | curable
+  ATURDIDO:    pierde siguiente turno | duración: 1 turno | no curable en combate
+  FORTALECIDO: +10 daño por turno | duración: 2 turnos
+  BENDECIDO:   +15% esquivar | duración: 3 turnos
+  ATERRADO:    50% de que el portador huya en lugar de atacar | duración: 2 turnos
+  ESQUIVANDO:  (del jugador) 60-75% evadir próximo ataque | duración: 1 turno
+
+FASE 4 — TURNO DEL ENEMIGO:
+  daño_bruto   = random(enemigo.daño_min, enemigo.daño_max)
+  defensa_jug  = armadura_equipada.defensa
+  resist_jug   = armadura_equipada.resist_magia
+  Si tipo_daño enemigo es FISICO:  daño_neto = max(1, daño_bruto - defensa_jug)
+  Si tipo_daño es MAGICO/ONIRICO:  daño_neto = max(1, daño_bruto - resist_jug)
+  Si jugador en estado ESQUIVANDO: 60-75% de que daño_neto = 0
+  vida -= daño_neto
+
+FASE 5 — RESOLUCIÓN:
+  Si vida_jugador <= 0:
+    ┌─────────────────────────────────────────┐
+    │  ☠  RANDOLPH CARTER HA CAÍDO            │
+    │                                         │
+    │  [1] Gastar ◈ {coste_resurrecion} oro   │
+    │      → Resucitar en {zona_segura} (30%) │
+    │  [2] Cargar último autoguardado          │
+    │  [3] Game Over — ver resumen de partida  │
+    └─────────────────────────────────────────┘
+    coste_resurrecion = 20 + (num_zona_actual * 5)   [FIX #11]
+    Si jugador no tiene suficiente oro: [1] aparece grisado e inaccesible
+
+  Si vida_enemigo <= 0:
+    Calcular loot según tabla:
+      cada objeto de loot_table: if random() < prob → añadir a inventario
+      si inventario lleno: preguntar al jugador qué descartar
+    xp += enemigo.xp_reward
+    oro += random(enemigo.oro_loot_min, enemigo.oro_loot_max)
+    mostrar resumen: "¡Victoria! +{xp} XP | +{oro} ◈ | {loot obtenido}"
+    actualizar bestiario: marcar enemigo como encontrado
+    si subió de nivel: mostrar pantalla de subida de nivel
+
+TABLA DE ENEMIGOS:
+  [FIX #13]: XP recalibrado con fórmula de referencia:
+  xp_referencia ≈ (vida/5) + (daño_max * 2) + (defensa * 3)
+
+  ─ Zoog Traicionero ────────────────────────────────
+  vida:10  dmg:3-8(FISICO)   def:0  vel:15  xp:22  oro:2-8
+  loot: 30% vino_dylath
+  IA: si hay 2+ Zoogs en combate activo → atacan en grupo (+2 daño)
+      huye si vida <= 3
+  especial: 20% de aplicar VENENO al atacar
+
+  ─ Ghul Carroñero ──────────────────────────────────
+  vida:35  dmg:8-15(FISICO)  def:2  vel:8   xp:47  oro:5-15
+  loot: 40% trofeo_ghast | 20% balsamo_onirico
+  IA: evalúa stat más bajo del jugador y ataca ese vector narrativo
+      (bajo Vida → ataque físico; baja Cordura → intimidación -5 Cordura)
+  especial: 25% de robar objeto aleatorio del inventario (NO MISION/CLAVE)
+            objeto robado: aparece en loot si se mata al Ghul
+
+  ─ Ghast de las Cavernas ───────────────────────────
+  vida:60  dmg:15-25(FISICO) def:5  vel:18  xp:82  oro:10-25
+  loot: 60% trofeo_ghast | 15% zarpa_ghast
+  IA: resistente a MAGICO (daño mágico reducido 50%), siempre ataca
+  especial: si jugador falla huida → Ghast ataca dos veces ese turno
+
+  ─ Sacerdote sin Rostro ────────────────────────────
+  vida:45  dmg:10-20(ONIRICO) def:8  vel:10  xp:102  oro:20-40
+  loot: 30% pergamino_antiguos | 20% elixir_voluntad
+  IA: prioriza drenar Cordura (-10/turno) sobre daño de Vida
+  especial: inmune a daño FISICO (defensa = 999 vs FISICO)
+            vulnerable a MAGICO (defensa = 0 vs MAGICO)
+
+  ─ Shantak Cazador ─────────────────────────────────
+  vida:50  dmg:20-30(FISICO) def:3  vel:20  xp:95  oro:15-30
+  loot: 25% escama_shantak
+  IA: huye con 80% probabilidad si vida <= 20
+  especial: ataque aéreo → solo resist_magia del jugador aplica (no defensa física)
+
+  ─ Nightgaunt ──────────────────────────────────────
+  vida:40  dmg:12-22(ONIRICO) def:4  vel:16  xp:88  oro:8-20
+  loot: 20% capa_niebla (durabilidad 3/10, reparable)
+  IA: silencioso, no activa tabla de ruido en zona
+  especial: aplica -5 Voluntad al jugador por turno (acumulable, no curable en combate)
+
+  ─ Guardián de Leng (JEFE, Zona 9) ─────────────────
+  vida:150  def:10  vel:12  xp:252  oro:80-120
+  loot: 100% reliquia_leng (garantizado)
+  especial: al inicio del combate: jugador pierde -20 Cordura automáticamente
+  IA MULTI-FASE:
+    Fase 1 (vida 150→100): dmg:25-40(FISICO) | vulnerable a MAGICO
+    Fase 2 (vida 100→50):  dmg:30-45(FISICO) | gana FORTALECIDO | inmune FISICO
+                            cambio de fase: mensaje "¡El Guardián muta!"
+    Fase 3 (vida  50→0):   dmg:20-35(ONIRICO) | ataca DOS VECES por turno
+                            drena Cordura Y Vida simultáneamente
+
+  ─ Mensajero de Nyarlathotep (JEFE FINAL, Zona 11-12) ─
+  vida:200  def:15  vel:15  xp:503  oro:200-300
+  loot: nada (la victoria es la recompensa narrativa)
+  IA MULTI-FASE CON MECÁNICA ESPECIAL:
+    Fase 1 (vida 200→150): alterna ataque FISICO(30-40) y MAGICO(20-35)
+    Fase 2 (vida 150→75):  CREA CLON DEL JUGADOR
+      El clon tiene los stats actuales del jugador (vida, daño, vel)
+      Aparece como enemigo adicional en el combate
+      DILEMA al atacar:
+        [A] Atacar al Mensajero: -20 Cordura pero +30 daño al Mensajero
+        [B] Atacar al Clon:       el clon desaparece pero Mensajero gana vida +20
+        [C] Ignorar al Clon:       el clon ataca al jugador cada 2 turnos
+    Fase 3 (vida 75→0):    drena Cordura DIRECTAMENTE (-15/turno)
+                            daño masivo ONIRICO (40-60) ignorando toda defensa
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE NPCS Y DIÁLOGOS
+═══════════════════════════════════════════════════════════════════════
+ESTRUCTURA NPC (clase NPC):
+  id:            str
+  nombre:        str
+  zona_id:       str
+  personalidad:  str  (descripción breve para guiar el tono del texto)
+  actitud_base:  str  ("aliado", "neutral", "hostil", "comerciante")
+  actitud_actual: str (puede cambiar según flags)
+  memoria:       dict (flags de decisiones del jugador que recuerda)
+  dialogo_tree:  dict (árbol completo de diálogos, ver estructura abajo)
+
+ESTRUCTURA NODO DE DIÁLOGO:
+  nodo_id:   str
+  texto:     str   (lo que dice el NPC)
+  opciones:  list de:
+    {
+      "texto_opcion": str,
+      "nodo_destino": str  (id del siguiente nodo, o "FIN" o "QUEST_X"),
+      "requisito":    dict (condición para que aparezca la opción),
+      "efecto":       dict (cambios al elegir: flags, stats, quests)
+    }
+
+NPCs PRINCIPALES (implementa árboles de diálogo de 3 niveles):
+
+MENES EL FELINO (zona_1):
+  personalidad: anciano sabio, protector de gatos, desconfía profundamente de los Zoog
+  memoria: ["eligio_zoog", "gatos_aliados", "nivel_jugador"]
+
+  NODO "inicio":
+    texto: "Bienvenido a Ulthar, soñador. Los gatos aquí son sagrados.
+            ¿Qué te trae a nuestra ciudad?"
+    opciones:
+      [1] "Necesito información sobre Kadath"
+          → req: {} | destino: "info_kadath" | efecto: {}
+      [2] "¿Tienes algo que vender?"
+          → req: {} | destino: "tienda" | efecto: {abre_tienda: True}
+      [3] "Háblame de los gatos de Ulthar"
+          → req: {} | destino: "sobre_gatos" | efecto: {}
+      [4] "He oído que falta un gatito..."  [solo si NO flag GATOS_ALIADOS]
+          → req: {flag_ausente:"GATOS_ALIADOS"} | destino: "quest_01_oferta"
+
+  NODO "quest_01_oferta":
+    texto: "Sí... Whisper desapareció en el bosque de los Zoog hace dos noches.
+            Si lo encuentras y lo traes de vuelta, Ulthar te estará en deuda."
+    opciones:
+      [1] "Buscaré a Whisper" → efecto: {activar_quest:"quest_01"} | destino: "FIN"
+      [2] "No es asunto mío"  → efecto: {} | destino: "FIN"
+
+  NODO "info_kadath":
+    texto: [si GATOS_ALIADOS]: "Kadath... los gatos conocen el camino. Pero primero
+            debes ganarte su confianza en todos los reinos."
+           [si GATOS_HOSTILES]: "No tengo nada que decirte, traidor de felinos."
+           [si neutral]: "Kadath está más allá de los montes del humo. Pocos
+            que la buscan regresan."
+    opciones:
+      [1] "¿Cómo puedo ganarme su confianza?" [req: GATOS_ALIADOS]
+          → destino: "secreto_fragmentos" [revela ubicación frag 7 si nivel>=5]
+      [2] "Entendido. Gracias." → destino: "FIN"
+
+ZOOG GRIS (zona_2):
+  personalidad: mercader oportunista, astuto, no tiene lealtades reales
+  memoria: ["quest_02_completada", "reputacion_jugador"]
+
+  NODO "inicio":
+    texto: "Ah, un soñador que se adentra en nuestro bosque. ¿Buscas algo...
+            o tienes algo que ofrecer?"
+    opciones:
+      [1] "Quiero comerciar" → destino: "trueque" | efecto: {abre_trueque:True}
+      [2] "Cuéntame sobre el bosque" → destino: "info_bosque"
+      [3] "Hay un gatito en el bosque..."  [req: tener gatito_onirico]
+          → destino: "quest_02_oferta"
+      [4] "¿Sabes algo de Nyarlathotep?"  [req: voluntad>=50]
+          → destino: "info_nyarlat"
+
+  NODO "info_nyarlat": [solo req voluntad>=50]
+    texto: "Ese nombre... no se pronuncia en voz alta en el bosque onírico.
+            Te diré solo esto: sirve a algo más antiguo que los Dioses.
+            Y ese algo ya sabe que estás aquí, soñador."
+    efecto: {cordura: -5}
+    opciones: [1] "Gracias por el aviso" → destino: "FIN"
+
+CAPITÁN ARASH (zona_3), KURANES (zona_6), NODENS (zona_especial):
+  [Implementa con la misma estructura de 3 niveles y memoria de decisiones.
+   Nodens solo aparece si jugador tiene pergamino_antiguos.
+   Nodens nivel 3 (req: cordura>80 AND nivel>=5) revela:
+   "Nyarlathotep teme una cosa: la voluntad libre. En Kadath, elige sin miedo."]
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE MAPA DE KADATH — ENSAMBLADO DE FRAGMENTOS
+═══════════════════════════════════════════════════════════════════════
+[FIX #7]: mecánica completa de ensamblado del mapa.
+
+VARIABLE: mapa_fragmentos_obtenidos (int, rango 0-4)
+
+FUENTES DE FRAGMENTOS (máximo 4, solo se necesitan 3 para desbloquear Zona 10):
+  Fragmento 1: completar QUEST-02 (flag MAPA_FRAG_1)
+  Fragmento 2: completar QUEST-04 (flag MAPA_NGRANEK → MAPA_FRAG_2)
+  Fragmento 3: evento EVT-07 "El mapa rasgado" (flag MAPA_FRAG_3)
+  Fragmento 4: artículo ilegal de Tienda 3 (comprar fragmento_mapa, 120 oro)
+
+FLAG mapa_completo = True cuando mapa_fragmentos_obtenidos >= 3
+Requisito Zona 10: mapa_completo == True
+
+Al obtener cada fragmento: animación breve de "el mapa se completa un poco más"
+Al obtener el tercero: "El mapa de Kadath ha tomado forma. El camino está abierto."
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE PUZLES — ESPECIFICACIÓN COMPLETA
+═══════════════════════════════════════════════════════════════════════
+ESTRUCTURA Puzzle (clase PuzzleSystem gestiona todos):
+  id, titulo, zona_id, intentos_max (0=ilimitado), intentos_usados,
+  penalizacion (dict), bypass_posible (bool), bypass_req (dict),
+  xp_reward (int), oro_reward (int), objeto_reward (str|None),
+  resuelto (bool), pistas (list de str)
+
+PUZLE 1 — Las Runas de Zak (Zona 5):
+  Secuencia de 5 símbolos ASCII. El jugador introduce números 1-5.
+  Símbolos disponibles: [1]✦  [2]◈  [3]∞  [4]Ψ  [5]☽
+  Secuencia correcta: ☽ Ψ ∞ ✦ ◈  →  [5, 4, 3, 1, 2]
+  Pistas en zona:
+    Inscripción norte: "La luna precede a la estrella"     → ☽ antes de ✦
+    Inscripción sur: "El infinito nace del símbolo del alma" → ∞ después de Ψ
+    Inscripción este: "El último es el primero de los cielos" → ◈ al final (◈ es oro)
+  intentos_max: 3 | penalizacion: {vida: -15} por fallo
+  bypass: voluntad>=70 → Carter descifra sin pistas (no usa intentos)
+  xp: 120  oro: 60  objeto: llave_catacumbas
+
+PUZLE 2 — El Comerciante Zoog (Zona 2):
+  Cadena de trueques entre 4 NPCs Zoog.
+  Objeto inicial: piedra_comun (siempre en inventario desde inicio)
+  Cadena completa:
+    piedra_comun → [Zoog Umber] → pluma_onirica
+    pluma_onirica → [Zoog Silas] → frasco_vacio
+    frasco_vacio  → [Zoog Petra] → mapa_bosque
+    mapa_bosque   → [Zoog Dorn]  → clave_zoog
+  Los 4 Zoogs están en la zona. Sus diálogos revelan qué quieren.
+  intentos_max: 0 | penalizacion: ninguna
+  bypass: ninguno
+  xp: 80  oro: 40  objeto: clave_zoog (abre zona_oculta del bosque)
+
+PUZLE 3 — La Navegación por Oriab (Zona 7):
+  Mapa ASCII 15x8. El jugador mueve ▲ con [W/A/S/D].
+  Celdas: ~ agua libre | M monstruo marino | ≈ tormenta | ★ puerto destino
+  El mapa se revela 1 celda alrededor del jugador (niebla de guerra).
+  intentos_max: 0 | penalizacion: {vida: -20, oro: -10} por colisión con M
+  bypass: flag RUTA_SEGURA → animación de llegada automática sin jugabilidad
+  xp: 150  oro: 0  objeto: acceso a Zona 8 desbloqueado (flag ORIAB_CRUZADO)
+
+PUZLE 4 — Los Espejismos de Leng (Zona 9):
+  Laberinto ASCII 12x12, semilla fija = 42 (reproducible).
+  El jugador navega con [W/A/S/D]. 3 salidas falsas (S1, S2, S3) + 1 verdadera (S4).
+  MECÁNICA DE CORDURA:
+    si cordura < 50: 30% de celdas del mapa se reemplazan con carácter aleatorio
+                     El laberinto real NO cambia, solo la visualización miente.
+                     El HUD puede mostrar stats incorrectos (±10 aleatorio)
+  3 notas ocultas en celdas específicas:
+    Nota A (celda 3,7): "El camino verdadero no brilla."
+    Nota B (celda 9,2): "Las salidas falsas huelen a azufre onírico."
+    Nota C (celda 6,10): "El norte del laberinto guarda la verdad."
+  Salida verdadera: S4 = esquina noroeste del laberinto
+  intentos_max: 0 | penalizacion: {cordura: -5} por cada salida falsa tomada
+  bypass: nivel>=6 → Forma de Niebla activa: puede atravesar paredes (1 uso)
+  xp: 200  oro: 50  objeto: reliquia_leng
+
+PUZLE 5 — El Canto de los Dioses Menores (Zona 10):
+  Se muestra una secuencia de 7 notas: DO RE MI FA SOL LA SI
+  Representadas en pantalla durante 3 segundos (time.sleep(3) + borrar)
+  Teclas de entrada: [1]=DO [2]=RE [3]=MI [4]=FA [5]=SOL [6]=LA [7]=SI
+  MECÁNICA DE CORDURA:
+    si cordura < 40: la nota 4ª de la secuencia mostrada es incorrecta.
+                     El juego AVISA: "Tu mente perturbada distorsiona la melodía."
+                     La secuencia REAL (correcta) no cambia.
+  Secuencia fija: DO MI SOL RE LA FA SI  →  [1, 3, 5, 2, 6, 4, 7]
+  intentos_max: 3 | penalizacion: {voluntad: -10} por fallo
+  bypass: tener pergamino_antiguos → opción "[P] Ver secuencia de nuevo"
+  xp: 180  oro: 70  objeto: desbloquea paso a Zona 11 (flag CANTO_RESUELTO)
+
+PUZLE 6 — El Dilema de Nyarlathotep (Zona 11):
+  Árbol de diálogo de 4 niveles. No hay respuesta universalmente correcta.
+  Nyarlathotep toma forma humana y ofrece un trato.
+  La respuesta óptima DEPENDE del estado del jugador:
+    si GATOS_ALIADOS:        respuesta honesta → activar flag RECHAZO_FIRME
+    si tiene pergamino:      puede invocar a Nodens → Nyarlathotep retrocede
+    si cordura < 30:         opciones aparecen en orden aleatorio (caos mental)
+    si todas quests hechas:  opción única de desafío directo disponible
+  intentos_max: 1 (decisión permanente, no hay vuelta atrás)
+  penalizacion: varía según rama (desde {cordura:-20} hasta sin penalización)
+  bypass: ninguno (es el clímax narrativo)
+  xp: 300  oro: 0
+  objeto: condicional:
+    si RECHAZO_FIRME: Nyarlathotep, enfurecido, se convierte en jefe de combate
+    si acepta trato:  skip del combate, acceso directo a Zona 12, flag PACTO_NYARLAT
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE BESTIARIO — ESTRUCTURA COMPLETA
+═══════════════════════════════════════════════════════════════════════
+[FIX #24]: estructura de datos completa del bestiario.
+
+CLASE BestiarySystem:
+  entradas: dict {id_enemigo: BestiaryEntry}
+
+CLASE BestiaryEntry:
+  id:             str
+  nombre:         str
+  descripcion:    str   (texto Lovecraftiano sobre la criatura)
+  primera_vez:    str   (timestamp de primer encuentro)
+  kills:          int   (número de veces derrotado)
+  encontrado:     bool  (True si se ha visto, aunque no derrotado)
+  derrotado_vez:  bool  (True si se ha derrotado al menos 1 vez)
+  debilidades:    list  (tipos de daño más efectivos)
+  resistencias:   list  (tipos de daño reducidos)
+  loot_conocido:  list  (objetos obtenidos de él, se descubren al obtenerlos)
+  nota_especial:  str   (mecánica especial, se revela al derrotarlo 3 veces)
+
+ACTUALIZACIÓN DEL BESTIARIO:
+  Al ver a un enemigo por primera vez: encontrado = True
+  Al derrotarlo por primera vez: derrotado_vez = True, kills += 1
+  Al derrotarlo 3 veces: nota_especial se revela al jugador
+  Tecla [B] en cualquier momento fuera de combate: abre pantalla de bestiario
+  Formato en pantalla: lista de enemigos encontrados con sus datos conocidos
+  Enemigos no encontrados: aparecen como "????? [desconocido]"
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE EVENTOS ALEATORIOS
+═══════════════════════════════════════════════════════════════════════
+FRECUENCIA: 1 evento cada 5 acciones del jugador (contador global)
+ESTRUCTURA EventEntry: id, zona, trigger, frecuencia, unico, descripcion,
+                        opcion_A{texto, consecuencia}, opcion_B{texto, consecuencia},
+                        requisito, activado (bool si unico)
+
+TABLA DE 20 EVENTOS (implementa todos):
+
+  EVT-01: "El mendigo onírico" | zona:cualquiera | unico:False
+    Descripción: Un anciano harapiento extiende la mano hacia ti.
+    A [Dar 5 oro]:    reputacion+3, el anciano susurra pista aleatoria del puzle activo
+    B [Ignorar]:      efecto: {flag:"mendigo_ignorado"} — sin consecuencia directa
+
+  EVT-02: "Lluvia de estrellas negras" | zona:cualquiera | unico:False
+    Descripción: El firmamento onírico se llena de astros que no deberían existir.
+    A [Observar]:     {cordura:-10, xp:+15} — "Conocimiento prohibido, precio justo."
+    B [Apartar vista]:{} — nada ocurre, Carter se siente más seguro
+
+  EVT-03: "El mercader ambulante" | zona:cualquiera | unico:False
+    Descripción: Un hombre sin sombra ofrece un objeto envuelto en tela negra.
+    A [Comprar (oro aleatorio 20-80)]: obtiene consumible aleatorio del pool
+    B [Rechazar]:     {} — el mercader se disuelve en niebla
+
+  EVT-04: "El sueño dentro del sueño" | zona:cualquiera | unico:False
+    req: none (puede ocurrir siempre, incluyendo al descansar con 20% prob)
+    Descripción: Carter siente el borde del despertar. El mundo real tira de él.
+    A [Despertar]:    FINAL 4 activado inmediatamente (final malo especial)
+    B [Resistir]:     {voluntad:-5, cordura:+10} — el sueño se estabiliza
+
+  EVT-05: "Gatos de Ulthar perdidos" | zona:cualquiera | req:GATOS_ALIADOS | unico:False
+    Descripción: Tres felinos oníricos te siguen, asustados y desorientados.
+    A [Acogerlos]:    añade objeto "gatos_compania" al inventario (peso 1)
+                      mientras en inventario: -10% probabilidad encuentros hostiles
+    B [Rechazarlos]:  {reputacion:-5} — los gatos se alejan decepcionados
+
+  EVT-06: "Susurros de Nyarlathotep" | zona:cualquiera | unico:False
+    Descripción: Una voz sin forma promete poder a cambio de un recuerdo olvidado.
+    A [Aceptar]:      {voluntad:+20, cordura:-15, flag:"nyarlat_contacto"}
+    B [Rechazar]:     {cordura:+5} — la resistencia fortalece la mente
+
+  EVT-07: "El mapa rasgado" | zona:cualquiera | unico:True
+    Descripción: Una hoja de pergamino vuela hacia ti en el viento onírico.
+    A [Recoger]:      {mapa_fragmentos_obtenidos:+1, flag:"MAPA_FRAG_3"}
+    B [Ignorar]:      el fragmento desaparece permanentemente (perdido para siempre)
+
+  EVT-08: "Emboscada de Zoogs" | zona:zona_2 | req:GATOS_HOSTILES | unico:False
+    Descripción: Los Zoog emergen de los árboles por orden de su líder gris.
+    A [Combatir]:     inicia combate contra 3 Zoogs Tracioneros simultáneos
+    B [Huir]:         {vida:-10} — escapas con rasguños
+
+  EVT-09: "El pescador de Dylath" | zona:zona_3 | unico:True
+    Descripción: Un pescador muestra algo que extrajo del mar. Algo que respira sin boca.
+    A [Examinar]:     {cordura:-15, xp:+40} + pista sobre peligros del Mar de Oriab
+    B [Ignorar]:      {} — el pescador lo arroja de vuelta con expresión aliviada
+
+  EVT-10: "La canción de las esferas" | zona:cualquiera | unico:False
+    Descripción: Una melodía imposible emerge del aire, familiar y perturbadora.
+    A [Escuchar]:     muestra pista del puzle activo actual en la zona
+    B [Ignorar]:      {} — la melodía se desvanece
+
+  EVT-11: "La sombra equivocada" | zona:cualquiera | unico:False
+    Descripción: Tu sombra se mueve cuando tú no lo haces.
+    A [Confrontarla]: inicia combate vs Nightgaunt (aparición especial)
+    B [Ignorar]:      {cordura:-8} — la sombra se normaliza eventualmente
+
+  EVT-12: "El viejo libro" | zona:zona_5 | unico:True
+    Descripción: Encuentras un libro encuadernado en piel que no es animal.
+    A [Leer]:         {voluntad:+10, cordura:-20, xp:+30}
+    B [Quemar]:       {cordura:+5} — la sabiduría prohibida se pierde
+
+  EVT-13: "La oferta del Shantak" | zona:zona_4 | unico:True
+    req: nivel>=3
+    Descripción: Un Shantak aterriza ante ti sin atacar. Te ofrece transporte.
+    A [Montar]:       transporte directo a Zona 7 (saltando Zonas 5 y 6), {cordura:-10}
+    B [Rechazar]:     {} — el Shantak alza el vuelo
+
+  EVT-14: "Gules en la oscuridad" | zona:zona_4 | req:NOCHE | unico:False
+    Descripción: Los Gules merodean. Te reconocen si tienes el trofeo de Ghast.
+    A [Mostrar trofeo]: req trofeo_ghast → los Gules te ofrecen info sobre Kadath
+    B [Esconderse]:     {} — los Gules pasan de largo
+
+  EVT-15: "El espejo roto" | zona:zona_6 | unico:True
+    Descripción: En el palacio de Celephais hay un espejo que muestra otro mundo.
+    A [Mirar]:        {cordura:-10, xp:+50} — visión del mundo real de Carter
+    B [Apartar vista]:{} — algunos secretos es mejor no verlos
+
+  EVT-16: "La tormenta onírica" | zona:zona_7 | unico:False | req:NOCHE
+    Descripción: Una tormenta sobrenatural cae sobre el mar.
+    A [Refugiarse]:   pierdes 1 acción de movimiento, sin daño
+    B [Navegar igual]:{vida:-15} — las olas te golpean pero avanzas
+
+  EVT-17: "El prisionero olvidado" | zona:zona_8 | unico:True
+    Descripción: En una celda oculta hay alguien que lleva demasiado tiempo soñando.
+    A [Liberarlo]:    {reputacion:+10, xp:+40} — te da información sobre Leng
+    B [Dejarlo]:      {} — sus ojos te siguen mientras te alejas
+
+  EVT-18: "La voz de Kadath" | zona:zona_9 | unico:False
+    Descripción: Por un momento, escuchas algo desde Kadath. Tu nombre, quizás.
+    A [Responder]:    {cordura:-5, voluntad:+15} — la conexión te fortalece
+    B [Silencio]:     {} — la voz se apaga sin consecuencias
+
+  EVT-19: "El último soñador" | zona:zona_10 | unico:True
+    Descripción: Encuentras el esqueleto de otro soñador que intentó llegar a Kadath.
+    Tiene un diario. Junto a él, un objeto.
+    A [Leer el diario]: {cordura:-10, xp:+60} + revela debilidad del jefe final
+    B [Coger el objeto]: obtiene balsamo_onirico x2, sin leer el diario
+
+  EVT-20: "El susurro final" | zona:zona_11 | unico:True
+    Descripción: Nodens habla desde lejos. Una última advertencia antes de Kadath.
+    A [Escuchar con atención]: req cordura>=60 → {cordura:+15, voluntad:+15}
+    B [Ya no hay tiempo]:      {} — la voz se pierde en el viento cósmico
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE TUTORIAL — ZONA 1 (ULTHAR)
+═══════════════════════════════════════════════════════════════════════
+Se activa SOLO si es partida nueva (flag tutorial_completado = False).
+Menes el Felino guía al jugador. Cada paso tiene [SALTAR TUTORIAL].
+Al completar: flag tutorial_completado = True, se guarda en save.
+Accesible en cualquier momento: tecla [?] → menú de ayuda con resumen.
+
+PASOS DEL TUTORIAL (secuencia obligatoria):
+  Paso 1 — HUD: Menes señala cada elemento del HUD con flechas ASCII.
+            Texto: "Esto es tu Cordura. Si llega a cero... no regresarás."
+  Paso 2 — Inventario: el jugador recibe Daga Onírica y Ropas de Viajero.
+            Menes explica [I], [E] equipar, [U] usar, [D] descartar.
+            El jugador DEBE equipar la daga antes de continuar.
+  Paso 3 — Combate: un Zoog Traicionero aparece con vida=5.
+            El juego guía por la primera acción. Solo [1] disponible inicialmente.
+            Tras el combate: explica XP y subida de nivel.
+  Paso 4 — Tienda: Menes lleva al jugador al mercado.
+            Explica la interfaz de tienda, comprar, vender, precios dinámicos.
+  Paso 5 — Guardado: el juego fuerza pantalla de guardado.
+            Explica slots, autoguardado, directorio ~/.kadath_saves/
+  Paso 6 — Mapa: tecla [M] abierta con explicación de leyenda.
+  Paso 7 — Quests: Menes ofrece QUEST-01 con explicación del sistema.
+            Muestra la pantalla de quest activa con objetivo y recompensa.
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DÍA/NOCHE
+═══════════════════════════════════════════════════════════════════════
+Ciclo: cada 20 acciones del jugador alterna DÍA ↔ NOCHE.
+Estado visible en HUD línea 7: [☀ DÍA] o [☾ NOCHE]
+Contador de turno visible: "Turno: {n}" junto al ciclo.
+
+Efectos:
+  DÍA:   encuentros aleatorios -30% | tiendas abiertas | todos los NPCs activos
+  NOCHE: encuentros aleatorios +50% | tiendas cerradas (excepto Dylath vende_a_temidos)
+         NPCs nocturnos activos: Ghuls, Nightgaunts +40% en su tabla de encuentros
+         si cordura < 50: cordura -= 1 por acción (la noche erosiona la mente débil)
+
+Descanso (acción disponible fuera de combate en zonas con is_safe_zone o posada):
+  [FIX #12]: máximo 2 descansos por zona por visita (reset al salir y volver)
+  Descanso libre: {cordura:+15, voluntad:+10, vida:+5}
+    + efectos de armadura (Ropas Viajero: +5 Cordura extra)
+    + 20% prob de disparar EVT-04
+  Descanso en posada: cuesta 10 oro | recupera stats completos | sin límite de usos
+  Al intentar 3er descanso libre: "Ya has descansado suficiente aquí, soñador."
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE GUARDADO — ESPECIFICACIÓN COMPLETA
+═══════════════════════════════════════════════════════════════════════
+Directorio: ~/.kadath_saves/   (creado si no existe)
+Formato: JSON con json.dumps(data, indent=2, ensure_ascii=False)
+
+ESTRUCTURA COMPLETA DEL SAVE JSON:
+{
+  "version": "3.0",
+  "timestamp": "ISO8601",
+  "tiempo_jugado_s": int,
+  "zona_actual": "zona_id",
+  "ciclo": "DIA" o "NOCHE",
+  "turno_contador": int,
+  "stats": {
+    "vida": int, "vida_max": int,
+    "cordura": int, "cordura_max": int,
+    "voluntad": int, "voluntad_max": int,
+    "velocidad_base": int,
+    "reputacion": int,
+    "oro": int,
+    "nivel": int, "xp": int,
+    "bonus_daño_extra": float,
+    "bonus_resist_extra": float
+  },
+  "inventario": [ {todos los atributos del Item serializado} ],
+  "slot_arma": {Item serializado o null},
+  "slot_armadura": {Item serializado o null},
+  "habilidades": ["paso_silencioso", ...],
+  "mejoras_nivel": ["vida_max_+15", ...],
+  "flags": {
+    "GATOS_ALIADOS": bool, "GATOS_HOSTILES": bool,
+    "CELEPHAIS_ESTABLE": bool, "RUTA_SEGURA": bool,
+    "MAPA_FRAG_1": bool, "MAPA_NGRANEK": bool,
+    "MAPA_FRAG_3": bool, "RUTA_KADATH": bool,
+    "nyarlat_contacto": bool, "guardian_derrotado": bool,
+    "PACTO_NYARLAT": bool, "RECHAZO_FIRME": bool,
+    "CELEPHAIS_ESTABLE": bool, "PROMESA_ULTHAR": bool,
+    "PACIFISTA": bool, "ORIAB_CRUZADO": bool,
+    "CANTO_RESUELTO": bool, "tutorial_completado": bool,
+    "new_game_plus": bool
+  },
+  "mapa_fragmentos": int,
+  "quests": { "quest_id": {"activa":bool,"completada":bool,"fallada":bool} },
+  "puzles": { "puzle_id": {"resuelto":bool,"intentos_usados":int} },
+  "zonas_visitadas": ["zona_1", ...],
+  "descansos_zona_actual": int,
+  "eventos_activados": ["evt_id_unico_activado", ...],
+  "bestiario": {
+    "id_enemigo": {
+      "encontrado": bool, "kills": int,
+      "primera_vez": "ISO8601", "loot_conocido": []
+    }
+  },
+  "fragmentos_ceramica": int,
+  "logros": ["logro_id_desbloqueado", ...],
+  "decisiones_clave": ["eligio_gatos", ...],
+  "ng_plus_stats_heredados": {} o null,
+  "enemigos_muertos_acto1": int
+}
+
+MECÁNICAS DE GUARDADO:
+  Autoguardado: al entrar en zona nueva → archivo "autosave.json" (sobrescribe)
+  3 slots manuales: autosave.json + slot_1.json + slot_2.json + slot_3.json
+  Tecla [G] fuera de combate: menú de guardado manual con 3 slots
+    Cada slot muestra: zona, nivel, tiempo jugado, timestamp o "VACÍO"
+  Tecla [G] en combate: mensaje "No puedes guardar durante el combate."
+  Save corrompido: try/except al cargar → "Save corrompido. ¿Borrar? [S/N]"
+  Función exportar [E en menú carga]: genera kadath_partida_export.txt
+    con resumen legible de la partida (zona, stats, quests, decisiones)
+
+═══════════════════════════════════════════════════════════════════════
+MÚLTIPLES FINALES — CONDICIONES EXACTAS
+═══════════════════════════════════════════════════════════════════════
+La verificación de condiciones ocurre AL LLEGAR a Zona 12
+(excepto Final 4 que puede ocurrir en cualquier zona).
+
+PRIORIDAD de verificación (orden de evaluación):
+  1º Final 4 (muerte/locura) — ocurre en cualquier zona
+  2º Final 3 (cordura rota) — se verifica primero al llegar a Zona 12
+  3º Final 5 (secreto) — se verifica si condiciones de 3 no aplican
+  4º Final 2 (pacto) — se verifica si 5 no aplica
+  5º Final 1 (bueno) — se verifica si 2 no aplica
+  6º Final Genérico — si ninguna condición cumplida (Carter llega pero sin claridad)
+
+FINAL 1 — La Apoteosis del Soñador (Mejor):
+  CONDICIONES (todas deben cumplirse):
+    cordura > 70 AND GATOS_ALIADOS AND CELEPHAIS_ESTABLE
+    AND nivel >= 5 AND quests_completadas >= 4
+  NARRATIVA: Los Dioses revelan el secreto. Kadath no es un lugar.
+    Carter alcanza la iluminación onírica. Texto largo, cinematográfico.
+  CRÉDITOS ESPECIALES: lista de todas las decisiones clave tomadas.
+  XP BONUS: 1000 (aunque ya no sirve, es simbólico)
+
+FINAL 2 — El Pacto con lo Exterior (Oscuro):
+  CONDICIONES: nyarlat_contacto AND voluntad > 80 AND cordura < 50
+               AND NOT condiciones_final_1
+  NARRATIVA: Nyarlathotep acepta a Carter como herramienta eterna.
+    Llega a Kadath como peón, no como soñador libre.
+
+FINAL 3 — El Despertar Forzado (Neutro):
+  CONDICIÓN: cordura < 20 al llegar a Zona 12
+             (tiene prioridad sobre Finales 1 y 2 si cordura < 20)
+  NARRATIVA: La mente rota de Carter no puede sostener la visión.
+    Despierta en el mundo real, irreversiblemente marcado.
+
+FINAL 4 — Devorado por el Caos (Malo):
+  CONDICIÓN A: cordura = 0 en cualquier zona → trigger inmediato
+  CONDICIÓN B: muerte en combate sin oro para resucitar → trigger al elegir [3] Game Over
+  NARRATIVA: Nyarlathotep reclama el alma de Carter.
+    Pantalla en rojo. El bestiario del jugador se muestra como su epitafio.
+
+FINAL 5 — El Secreto de Ulthar (Oculto):
+  CONDICIONES: fragmentos_ceramica = 7 AND GATOS_ALIADOS
+               AND haber hablado con Nodens (flag NODENS_HABLADO)
+               AND nivel >= 6
+               AND NOT condiciones_final_3
+  NARRATIVA: Los Gatos son la verdadera llave de Kadath. Siempre lo fueron.
+    Carter comprende que los guardianes nunca fueron los Dioses.
+  RECOMPENSA: desbloquea New Game+ (flag new_game_plus = True en save)
+
+FINAL GENÉRICO (fallback si ninguno aplica):
+  Carter llega a Kadath pero no comprende lo que ve. Sale confundido y cambiado.
+  Texto neutro de 3-4 líneas. Sin bonificaciones especiales.
+
+NEW GAME+:
+  [FIX #21]: especificación completa de NG+.
+  Se desbloquea al completar Final 5.
+  Al iniciar NG+ desde el menú principal:
+    HEREDA AL 50%: vida_max, cordura_max, voluntad_max, velocidad_base
+    HEREDA AL 100%: logros desbloqueados (no se pierden)
+    HEREDA AL 100%: bestiario (entradas ya descubiertas se mantienen)
+    NO hereda: oro, inventario, nivel, quests, flags, zona
+    CAMBIA EN NG+:
+      - Enemigos tienen +20% vida y +10% daño
+      - Los 7 Fragmentos de Cerámica están en ubicaciones nuevas (semilla diferente)
+      - Texto de NPCs tiene línea adicional que reconocen a Carter ("Te recuerdo...")
+      - Disponible logro oculto "El Eterno Soñador" (completar NG+ con Final 1)
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE LOGROS (10 obligatorios + 2 ocultos NG+)
+═══════════════════════════════════════════════════════════════════════
+Al desbloquear: overlay ASCII de celebración + audio LOGRO + mensaje.
+Accesible en menú principal [L] y en menú pausa.
+
+  LOGRO-01: "Primera Sangre"
+    Condición: matar al primer enemigo
+    Mensaje: "El sueño ya conoce el sabor de tu determinación."
+
+  LOGRO-02: "Felino de Honor"
+    Condición: completar QUEST-01
+    Mensaje: "Los Gatos de Ulthar no olvidan a sus amigos."
+
+  LOGRO-03: "Mercader del Sueño"
+    Condición: acumular 500 oro en algún momento de la partida
+    Mensaje: "Hasta Dylath-Leen habla de tu fortuna onírica."
+
+  LOGRO-04: "Mente Inquebrantable"
+    Condición: llegar a Zona 7 (inicio Acto II) con cordura >= 90
+    Mensaje: "Lo que no puede romperse, trasciende."
+
+  LOGRO-05: "El Gran Catálogo"
+    Condición: todas las entradas del bestiario completas (8 enemigos derrotados)
+    Mensaje: "Conoces a tus enemigos mejor que ellos mismos."
+
+  LOGRO-06: "Pacifista Onírico"
+    Condición: flag PACIFISTA activo (QUEST-S04 completada)
+    Mensaje: "Incluso en el sueño, la fuerza no es la única respuesta."
+    [FIX #16]: se avisa antes de perderlo si se acepta Quest-04.
+
+  LOGRO-07: "Coleccionista de Pesadillas"
+    Condición: fragmentos_ceramica = 7
+    Mensaje: "Los fragmentos cantan cuando están juntos."
+
+  LOGRO-08: "Memento Mori"
+    Condición: morir 3 veces y continuar (resucitar o cargar) en la misma partida
+    Mensaje: "El sueño te devuelve. Quizás para atormentarte más."
+
+  LOGRO-09: "Soñador Completo"
+    Condición: todas las quests principales completadas (quest_01-06)
+    Mensaje: "Pocos llegan a Kadath con tantas deudas saldadas."
+
+  LOGRO-10: "La Verdad de los Gatos" [OCULTO]
+    Condición: desbloquear Final 5
+    Mensaje: "Nunca mires a un gato a los ojos durante demasiado tiempo."
+
+  LOGRO-11: "El Eterno Soñador" [OCULTO, solo NG+]
+    Condición: completar NG+ con Final 1
+    Mensaje: "Has soñado este sueño antes. Y lo soñarás de nuevo."
+
+  LOGRO-12: "Precio de la Ambición" [OCULTO]
+    Condición: completar Final 2 (pacto con Nyarlathotep)
+    Mensaje: "La victoria con el precio equivocado no es victoria."
+
+═══════════════════════════════════════════════════════════════════════
+SISTEMA DE SONIDO
+═══════════════════════════════════════════════════════════════════════
+Clase AudioSystem con detección de hardware en __init__:
+  self.audio_disponible = self._detectar_audio()
+
+  def _detectar_audio(self):
+      try:
+          result = os.system("which beep > /dev/null 2>&1")
+          return result == 0
+      except:
+          return False
+
+  def reproducir(self, evento):
+      freq, dur = TABLA_SONIDOS[evento]
+      if self.audio_disponible:
+          try:
+              os.system(f"beep -f {freq} -l {dur} 2>/dev/null &")
+          except:
+              pass
+      self._mostrar_visual(evento)  # siempre ejecuta el fallback visual
+
+TABLA_SONIDOS = {
+  "menu":         (440, 500),   # ♪ [bienvenida]
+  "combate":      (220, 300),   # ⚔ [combate!]
+  "golpe":        (150, 200),   # ✗ [golpe]
+  "critico":      (660, 400),   # ★ [crítico!]
+  "objeto":       (523, 250),   # ◈ [objeto]
+  "nivel":        (784, 600),   # ✦ [nivel!]
+  "muerte":       (110, 1000),  # ✝ [muerte]
+  "puzle":        (880, 400),   # ✓ [resuelto]
+  "quest":        (698, 500),   # ! [quest]
+  "logro":        (988, 700),   # ☆ [logro!]
+  "guardado":     (523, 300),   # 💾 [guardado]
+  "error":        (100, 800),   # ✗ [error]
+}
+Los indicadores visuales se muestran en el log de acciones (panel inferior).
+El juego NUNCA falla por ausencia de audio.
+
+═══════════════════════════════════════════════════════════════════════
+PANTALLA DE TÍTULO Y MENÚ PRINCIPAL
+═══════════════════════════════════════════════════════════════════════
+  ██╗  ██╗ █████╗ ██████╗  █████╗ ████████╗██╗  ██╗
+  ██║ ██╔╝██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██║  ██║
+  █████╔╝ ███████║██║  ██║███████║   ██║   ███████║
+  ██╔═██╗ ██╔══██║██║  ██║██╔══██║   ██║   ██╔══██║
+  ██║  ██╗██║  ██║██████╔╝██║  ██║   ██║   ██║  ██║
+  ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝
+
+      La Búsqueda Onírica de la Desconocida Kadath
+      ─────────────────────────────────────────────
+      [N] Nueva Partida
+      [C] Continuar     — lista los 4 slots (autosave + 3 manuales)
+      [O] Opciones      — audio on/off, velocidad de texto
+      [L] Logros        — galería de logros desbloqueados
+      [S] Salir
+
+      © 2024 Molvic Studio | Basado en H.P. Lovecraft | v3.0
+
+MENÚ DE PAUSA (tecla [P] fuera de combate):
+  [FIX #19]: contenido del menú de pausa definido exactamente:
+  ┌──────────────────────────────────┐
+  │  ⏸ PAUSA                        │
+  │                                  │
+  │  [G] Guardar partida             │
+  │  [M] Ver mapa                    │
+  │  [L] Ver logros                  │
+  │  [B] Ver bestiario               │
+  │  [Q] Ver quests activas          │
+  │  [?] Ayuda / tutorial            │
+  │  [O] Opciones                    │
+  │  [X] Volver al juego             │
+  │  [S] Guardar y salir al menú     │
+  └──────────────────────────────────┘
+
+MENÚ DE OPCIONES:
+  [1] Audio: ON/OFF
+  [2] Velocidad de texto: LENTO / NORMAL / RÁPIDO (efecto typewriter)
+  [3] Colores: COMPLETO / REDUCIDO / MONOCROMO
+  [4] Tamaño HUD: NORMAL / COMPACTO
+  [X] Volver
+
+═══════════════════════════════════════════════════════════════════════
+CALIDAD DEL CÓDIGO — REGLAS OBLIGATORIAS
+═══════════════════════════════════════════════════════════════════════
+1. CONSTANTES AL INICIO (bloque en mayúsculas, antes de todas las clases):
+   MAX_INVENTARIO = 12
+   PESO_MAX = 20
+   PESO_PENALIZACION_VELOCIDAD = -10
+   XP_TABLA = {1:0, 2:100, 3:200, 4:350, 5:500, 6:800, 7:1200}
+   BONUS_DAÑO_POR_NIVEL = 2          # bonus_nivel_daño = nivel * 2
+   BONUS_VEL_POR_NIVEL = 1           # bonus_nivel_vel  = nivel * 1
+   TECHO_PROB_HUIDA = 90             # máximo 90%
+   COSTE_RESURRECION_BASE = 20       # + num_zona * 5
+   MAX_DESCANSOS_ZONA = 2
+   COSTE_POSADA = 10
+   FREQ_EVENTOS = 5                  # 1 evento cada 5 acciones
+   MAPA_FRAGS_NECESARIOS = 3
+   DURABILIDAD_CRITICA = 2           # alerta al llegar a este valor
+   VELOCIDAD_BASE_JUGADOR = 10
+
+2. Datos de juego (zonas, enemigos, items, npcs, quests, eventos) en
+   diccionarios/listas de constantes al inicio. NUNCA hardcodeados en funciones.
+
+3. Manejo de excepciones en TODA operación I/O:
+   - Archivos JSON: try/except con mensaje de error elegante al jugador
+   - Curses: try/except en cada llamada de renderizado
+   - Input usuario: validar antes de procesar, nunca asumir formato
+
+4. El juego NUNCA crashea. Handler global de excepciones:
+   En Game.run(): try/except Exception as e → pantalla_error_elegante(e)
+   pantalla_error_elegante: intenta autoguardar, muestra error, sale limpio.
+
+5. SIGWINCH:
+   signal.signal(signal.SIGWINCH, self._handle_resize)
+   def _handle_resize(self, signum, frame):
+       self.ui.recalcular_layout()
+       self.ui.redibujar_todo()
+
+6. Comentarios en español en todas las funciones con lógica no trivial.
+
+7. Bloque final OBLIGATORIO:
+   if __name__ == "__main__":
+       try:
+           game = Game()
+           game.run()
+       except KeyboardInterrupt:
+           print("\n\n¡Hasta el próximo sueño, explorador!")
+           print("Molvic Studio © 2024")
+       except Exception as e:
+           print(f"\nError inesperado en el tejido onírico: {e}")
+           print("Los Dioses Exteriores han corrompido el código.")
+           print("Por favor reporta este error en: molvic.studio/soporte")
+
+8. Bloque de comentarios AL FINAL del archivo:
+   # ═══════════════════════════════════════════════════════
+   # KADATH v3.0 — Molvic Studio © 2024
+   # Basado en "La Búsqueda Onírica de la Desconocida Kadath"
+   # de H.P. Lovecraft (dominio público)
+   # ═══════════════════════════════════════════════════════
+   # INSTALACIÓN Y EJECUCIÓN EN LINUX:
+   #   chmod +x kadath.py
+   #   python3 kadath.py
+   #   Requiere: Python 3.8+ | Terminal mínima: 100x30
+   #   Recomendado: terminal con soporte de colores 256
+   #   Saves: ~/.kadath_saves/
+   # ═══════════════════════════════════════════════════════
+   # CONTROLES COMPLETOS:
+   #   [1-9]   Elegir acción del menú principal
+   #   [W/A/S/D] Movimiento en puzles de navegación
+   #   [I]     Abrir inventario completo
+   #   [M]     Ver mapa del mundo onírico
+   #   [G]     Guardar partida manualmente
+   #   [B]     Ver bestiario
+   #   [P]     Pausa / menú de pausa
+   #   [?]     Ayuda y tutorial
+   #   [ESC]   Volver / cancelar acción actual
+   #   [L]     Ver logros (desde menú pausa)
+   #   [Q]     Ver quests activas (desde menú pausa)
+   # ═══════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════════
+INSTRUCCIONES FINALES DE ENTREGA
+═══════════════════════════════════════════════════════════════════════
+1. Escribe el archivo kadath.py COMPLETO de una sola vez, sin interrupciones.
+2. La PRIMERA LÍNEA de tu respuesta debe ser exactamente: #!/usr/bin/env python3
+3. NO uses "# aquí iría X", "# TODO" propios, ni funciones con solo `pass`.
+   Excepción permitida: # TODO_MOLVIC: expandir en v1.1 — [descripción]
+   pero SOLO si el sistema simplificado que lo acompaña es funcional.
+4. TODO el código debe ser ejecutable. Sin errores de Python al lanzar.
+5. El juego debe poder: iniciarse, mostrar tutorial, completar combate básico,
+   acceder a inventario y tienda, guardar partida, y alcanzar al menos
+   Final 1 o Final 4 siguiendo el flujo de juego completo.
+6. Orden de implementación recomendado si la extensión es un problema:
+   NÚCLEO: Game loop, Player, Inventory, UIRenderer, SaveSystem
+   JUGABILIDAD: CombatSystem, ShopSystem, ZoneGraph (zonas 1-6)
+   CONTENIDO: QuestSystem, PuzzleSystem, EventSystem, NPCs
+   COMPLETO: zonas 7-12, todos los finales, bestiario, logros, NG+
+   Cada capa debe ser funcional por sí sola antes de pasar a la siguiente.
+
+EMPIEZA DIRECTAMENTE CON EL CÓDIGO.
+La primera línea de tu respuesta debe ser: #!/usr/bin/env python3
+```
+
+---
+
+### CHANGELOG v2.0 → v3.0 (25 correcciones aplicadas)
+
+| Fix | Descripción | Sección |
+|-----|-------------|---------|
+| #1  | Fragmento Cerámica separado en dos objetos distintos | Inventario |
+| #2  | bonus_nivel_daño y bonus_nivel_vel definidos con fórmula exacta | Stats + Combate |
+| #3  | Velocidad añadida como stat real con valor base y fórmula | Stats |
+| #4  | Panel HUD ampliado a 10 líneas | Arquitectura |
+| #5  | Gatito_Onírico añadido con atributos completos | Inventario |
+| #6  | Reputación unificada como int con tabla de categorías derivadas | Stats + Economía |
+| #7  | Sistema de ensamblado del Mapa de Kadath con fuentes y flag | Mapa + Quests |
+| #8  | pickle y hashlib eliminados de imports | Regla #1 |
+| #9  | Tabla de efectos de conjuro por nivel del jugador | Combate |
+| #10 | Quest-06 y Puzle-4: comportamiento retroactivo definido | Quests + Puzles |
+| #11 | Coste de resurrección escalado con zona | Combate |
+| #12 | Límite de 2 descansos por zona, posada sin límite con coste | Día/Noche |
+| #13 | XP de enemigos recalibrado con fórmula de referencia | Enemigos |
+| #14 | Habilidades automáticas por nivel, pool solo para mejoras de stats | Progresión |
+| #15 | Artículos ilegales de Tienda 3 definidos exactamente | Economía |
+| #16 | Conflicto Logro-06 vs Quest-04 documentado con aviso al jugador | Quests + Logros |
+| #17 | Fórmula de huida con techo explícito al 90% | Combate |
+| #18 | 4 quests secundarias con estructura Quest completa | Quests |
+| #19 | Menú de pausa con contenido completo definido | UI |
+| #20 | Tabla de equivalencias de trueque Bazar Zoog definida | Economía |
+| #21 | New Game+ especificado: qué hereda, qué no, qué cambia | Finales |
+| #22 | Coraza de Gul: comportamiento exacto al equipar/desequipar | Inventario |
+| #23 | Zonas seguras declaradas explícitamente con flag is_safe_zone | Mapa |
+| #24 | Bestiario con estructura de datos completa y clase BestiaryEntry | Bestiario |
+| #25 | Instrucción de prioridad nociva reemplazada por capas funcionales | Entrega |
