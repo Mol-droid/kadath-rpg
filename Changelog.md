@@ -226,3 +226,196 @@ Conclusión: La versión 0.2 de KADATH corrige errores importantes, mejora la ex
 ---
 
 **KADATH 0.3** no solo corrige errores, sino que expande el juego hacia una dirección lovecraftiana auténtica, donde la mente del soñador es frágil y los dioses antiguos observan desde las sombras. ¡Que los sueños te guíen!
+
+                                    DEFINITIVA v1.0
+
+KADATH – Registro de cambios (Changelog)
+[1.0] – 2024 – Edición Definitiva
+Consolidación y equilibrio final
+Sueños ajustados: Probabilidades equilibradas (8% explorar, 15% descansar) para que sean especiales sin saturar.
+
+Interfaz pulida: Se muestra "v1.0 - Edición Definitiva" en el menú principal.
+
+Código optimizado: Eliminado el estado GS.SUEÑO no utilizado; máquina de estados simplificada.
+
+Guardado robusto: Todos los atributos (aliados, conocimiento, sellos lunares) se guardan y restauran correctamente.
+
+Estabilidad mejorada: Manejo de señales y comprobaciones de límites en interfaz.
+
+Documentación completa: Comentarios y estructura preparados para mantenimiento.
+
+[0.3] – Expansión Lovecraft
+Nuevos sistemas de juego
+Sistema de cordura: Cada enemigo tiene cordura_dano; pérdida de cordura al inicio del combate.
+
+Resistencia a cordura: Nuevo atributo bonus_resist_cordura (obtenible vía mejoras/habilidades).
+
+Eventos oníricos (sueños):
+
+Proféticos (pistas sobre Kadath/sellos lunares)
+
+Pesadillas (pérdida de cordura)
+
+Reveladores (muestran objetos ocultos)
+
+Encuentros (aliados/objetos)
+
+Fases lunares: Ciclo de 4 fases que afecta encuentros y sueños.
+
+Aliados en combate: Gatos oníricos y otras criaturas luchan junto al jugador.
+
+Bestiario: Nueva pantalla con registro de criaturas encontradas.
+
+Múltiples finales: Dependen de cordura, decisiones, sellos lunares (0-3) y alianzas.
+
+Contenido expandido:
+
+5 nuevas misiones (q04, q05) con facciones
+
+Nuevos enemigos: Shantak, Ghoul Antiguo, Gnophkeh, Nyarlathotep (visión)
+
+Nuevas armas/armaduras: Hoja Lunar, Báculo de Nodens, Túnica Sonámbula
+
+Habilidades hasta nivel 10 (Mente Abierta, Invocar Aliado, Visión Cósmica, Avatar del Sueño)
+
+Mejoras en interfaz: Muestra fase lunar, aliados en combate, HUD optimizado.
+
+[0.2] – Correcciones y robustez
+Parche de estabilidad
+Coste de resurrección: Corregido el cálculo (usa int(zona.split('_')[1])).
+
+Equipamiento seguro: Verifica espacio en inventario antes de cambiar equipo.
+
+Misión q02: Ahora se activa correctamente al hablar con el Zoog.
+
+Rotura de armas: Implementada (arma se convierte a puños al llegar a durabilidad 0).
+
+Victoria en Kadath: El juego termina al llegar a zona_10.
+
+Selección de consumibles en combate: Submenú para elegir qué objeto usar.
+
+Manejo de SIGWINCH: Señal gestionada mediante bandera segura.
+
+Coordenadas flexibles: Adaptación a terminales pequeñas en todas las pantallas.
+
+Importaciones optimizadas: import copy movido al inicio del archivo.
+
+[0.1] – Versión inicial
+Lanzamiento base
+Motor TUI con curses y colores.
+
+Sistema de combate por turnos básico.
+
+Inventario con equipamiento de armas/armaduras.
+
+Misiones simples (q01, q02, q03).
+
+10 zonas explorables con conexiones.
+
+Sistema de guardado en JSON.
+
+Ciclo día/noche.
+
+Subida de nivel hasta 7 con habilidades.
+
+KADATH v1.0 representa la culminación de todas estas mejoras, ofreciendo una experiencia lovecraftiana profunda, estable y completamente jugable en terminal.
+
+# 🌙 KADATH v3.0 — La Búsqueda Onírica
+
+> *"No todos los que vagan están perdidos... algunos buscan Kadath."*
+
+**Versión:** 3.0  
+**Autor:** Molvic Studio © 2024  
+**Licencia:** Basado en H.P. Lovecraft (Dominio Público)  
+**Motor:** Python + curses (stdlib)  
+**Formato:** Single-file (~1800 líneas)
+
+---
+
+## 🎯 ¿Qué es KADATH?
+
+Juego de rol textual inspirado en *"La Búsqueda Onírica de la Desconocida Kadath"* de H.P. Lovecraft. Explora las Tierras del Sueño, gestiona tu cordura y alcanza la ciudad prohibida.
+
+---
+
+## 🎮 Características Principales
+
+| Sistema | Descripción |
+|---------|-------------|
+| **Exploración** | 10 zonas únicas (Ulthar, Celephaïs, Leng, Kadath...) |
+| **Combate** | Por turnos con armas, armaduras y conjuros |
+| **Cordura** | Mecánica lovecraftiana (baja cordura = finales alternativos) |
+| **Quests** | 3 misiones principales con decisiones permanentes |
+| **Inventario** | 12 slots, equipamiento, consumibles |
+| **Progresión** | 7 niveles con habilidades y mejoras |
+| **Guardado** | 4 slots automáticos + manuales |
+| **Finales** | Múltiples según decisiones y cordura |
+
+---
+
+## 🗺️ Zonas Disponibles
+
+| # | Zona | Tipo | Peligro |
+|---|------|------|---------|
+| 1 | Ulthar | Ciudad | 🟢 Seguro |
+| 2 | Bosque Zoog | Bosque | 🟡 Medio |
+| 3 | Dylath-Leen | Puerto | 🟢 Seguro |
+| 4 | Montañas del Humo | Montaña | 🔴 Alto |
+| 5 | Catacumbas Zak | Mazmorra | 🔴 Alto |
+| 6 | Celephaïs | Ciudad | 🟢 Seguro |
+| 7 | Mar Oriab | Mar | 🟡 Medio |
+| 8 | Inquanok | Ciudad | 🔴 Alto |
+| 9 | Meseta Leng | Tierra Prohibida | 🔴 Muy Alto |
+| 10 | Kadath | Destino Final | ❓ Desconocido |
+
+---
+
+## ⚔️ Sistema de Juego
+
+### Estadísticas del Jugador
+- **Vida** — Muerte si llega a 0
+- **Cordura** — Locura si llega a 0 (final alternativo)
+- **Voluntad** — Necesaria para conjuros
+- **Oro** — Compra en tiendas
+- **Nivel** — Máximo 7, con habilidades únicas
+
+### Combate
+- Por turnos con menú de acciones
+- Opciones: Atacar, Usar Objeto, Esquivar, Huir, Conjuro
+- Daño calculado con arma, nivel y defensa enemiga
+- Loot aleatorio tras victoria
+
+### Decisiones Clave
+- **El Gatito Onírico** — ¿Devolver a los gatos o dar a los Zoog?
+- Afecta aliados, reputación y final del juego
+
+---
+
+## 🏆 Logros
+
+| ID | Nombre | Requisito |
+|----|--------|-----------|
+| logro_01 | Primer Sangre | Derrota tu primer enemigo |
+| logro_03 | Rico Soñador | Consigue 500 oro |
+| logro_04 | Cordura Frágil | Llega a zona 7 con cordura ≥ 90 |
+
+---
+
+## 🛠️ Requisitos Técnicos
+
+| Requisito | Detalle |
+|-----------|---------|
+| **Python** | 3.7+ |
+| **Dependencias** | Ninguna (stdlib) |
+| **Sistema** | Linux, macOS, Windows (con `windows-curses`) |
+| **Terminal** | Con soporte curses y colores |
+
+### Instalación
+
+```bash
+# Linux/macOS
+python3 main.py
+
+# Windows
+pip install windows-curses
+python main.py
